@@ -35,7 +35,7 @@ namespace api.SsoKeyCloak
 
     //    public async Task<TokenResponse?> GetTokenAsync(string username, string password)
     //    {
-    //        var tokenEndpoint = "http://10.0.26.54:8080/realms/test_client/protocol/openid-connect/token";
+    //        var tokenEndpoint = "http://10.0.8.32:8080/realms/TestSSO/protocol/openid-connect/token";
 
     //        var parameters = new Dictionary<string, string>
     //        {
@@ -68,12 +68,17 @@ namespace api.SsoKeyCloak
         //{
         //    _authService = new KeycloakAuthService();
         //}
+        public AuthKeyCloakController(IKeyCloakService keycloakRepo)
+        {
+            _keycloakRepo = keycloakRepo;
+        }
 
         [HttpPost]
         public async Task<IActionResult> Login([FromBody] LoginModel model)
         {
             var result = await _keycloakRepo.GetUserAccessToken(model.Username, model.Password);
-            
+            Console.WriteLine("Result:",result);
+
             if (result != null)
             {
                 return Ok(result);

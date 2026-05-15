@@ -1,4 +1,4 @@
-﻿using api.UserSync;
+﻿// using api.UserSync;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System.IdentityModel.Tokens.Jwt;
@@ -8,6 +8,7 @@ using System.Text;
 using Newtonsoft.Json;
 using System.Net.Http.Headers;
 using Microsoft.AspNetCore.Mvc;
+using api.Controllers.AuthControllers;
 namespace api.Services.KeyCloakServices
 {
     public class KeycloakService:IKeyCloakService
@@ -18,15 +19,15 @@ namespace api.Services.KeyCloakServices
                   .Build();
 
         private static SqlConnection _db;
-        private readonly ILogger<UsersController> _logger;
-        private string _keycloakUrl= $"http://10.0.26.54:8080";
-        private string _realm= $"test_client";
+        private readonly ILogger<KeycloakService> _logger;
+        private string _keycloakUrl= $"http://10.0.8.32:8080";
+        private string _realm= $"TestSSO";
         private string _clientId= $"TestSSO";
         private string _clientSecret=$"eow12rrq9YQqERnTPKabxpmU1QDyYsGG";
         private string _adminUsername= $"admin";
         private string _adminPassword = $"admin";
 
-        public KeycloakService(SqlConnection db, ILogger<UsersController> logger)
+        public KeycloakService(SqlConnection db, ILogger<KeycloakService> logger)
         {
             _db = db;
             _logger= logger;
@@ -127,6 +128,9 @@ namespace api.Services.KeyCloakServices
             };
 
             var response = await _httpClient.PostAsync(tokenEndpoint, new FormUrlEncodedContent(parameters));
+            // var content = await response.Content.ReadAsStringAsync();
+
+            // Console.WriteLine(content);
             if (!response.IsSuccessStatusCode) return null;
 
             var result = await response.Content.ReadFromJsonAsync<TokenResponse>();
@@ -282,7 +286,7 @@ namespace api.Services.KeyCloakServices
         public async Task<bool> UsernameExistsInDatabase(string username)
         {
 
-            string _connectionString = "Server=10.0.26.54,1433;Database=keycloak_db;User Id=sa;Password=@Abc12345;TrustServerCertificate=True;";
+            string _connectionString = "Server=10.0.8.32,1433;Database=keycloak_db;User Id=sa;Password=@Abc12345;TrustServerCertificate=True;";
 
             try
             {
@@ -569,7 +573,7 @@ namespace api.Services.KeyCloakServices
         /// <returns></returns>
         public async Task<bool> ValidateUserInfo(ResetPasswordRequest request)
         {
-            string _connectionString = "Server=10.0.26.54,1433;Database=keycloak_db;User Id=sa;Password=@Abc12345;TrustServerCertificate=True;";
+            string _connectionString = "Server=10.0.8.32,1433;Database=keycloak_db;User Id=sa;Password=@Abc12345;TrustServerCertificate=True;";
             try
             {
                 using var connection = new SqlConnection(_connectionString);
@@ -610,13 +614,13 @@ namespace api.Services.KeyCloakServices
                 }
 
                 // 🔹 Lấy userId từ Keycloak dựa vào username
-                string keycloakApiUrl = $"http://10.0.26.54:8080/admin/realms/test_client/users?username={username}";
+                string keycloakApiUrl = $"http://10.0.8.32:8080/admin/realms/TestSSO/users?username={username}";
                 var request = new HttpRequestMessage(HttpMethod.Get, keycloakApiUrl);
                 request.Headers.Add("Authorization", $"Bearer {adminToken}");
 
 
                 string apiUrl = _keycloakUrl;
-                string apiRoute = $"/admin/realms/test_client/users?username={username}";
+                string apiRoute = $"/admin/realms/TestSSO/users?username={username}";
 
                 using var _httpClient = new HttpClient
                 {
@@ -643,7 +647,7 @@ namespace api.Services.KeyCloakServices
                 _logger.LogInformation($"Updating password for Keycloak user ID: {userId}");
 
                 // 🔹 Cập nhật mật khẩu mới
-                string passwordUpdateUrl = $"http://10.0.26.54:8080/admin/realms/test_client/users/{userId}/reset-password";
+                string passwordUpdateUrl = $"http://10.0.8.32:8080/admin/realms/TestSSO/users/{userId}/reset-password";
                 var passwordUpdatePayload = new
                 {
                     type = "password",

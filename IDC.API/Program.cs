@@ -3,6 +3,7 @@ using IDC.Backend.Servives.Extensions;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using api.Models;
+using api.Services.KeyCloakServices;
 var builder = WebApplication.CreateBuilder(args);
 
 //builder.Services.AddAutoMapper(typeof(GenericMappingProfile)); // Register AutoMapper
@@ -20,6 +21,7 @@ builder.Services.AddApiSerive<dbAPIContext>(connStr, dyn =>
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddControllers();
+builder.Services.AddScoped<IKeyCloakService, KeycloakService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddAutoMapper(typeof(Program));
 builder.Services.AddOutputCache(options =>
