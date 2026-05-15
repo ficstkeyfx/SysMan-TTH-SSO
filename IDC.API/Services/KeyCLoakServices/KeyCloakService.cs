@@ -20,7 +20,7 @@ namespace api.Services.KeyCloakServices
 
         private static SqlConnection _db;
         private readonly ILogger<KeycloakService> _logger;
-        private string _keycloakUrl= $"http://172.17.10.77:8080";
+        private string _keycloakUrl= $"http://192.168.93.198:8080";
         private string _realm= $"TestSSO";
         private string _clientId= $"TestSSO";
         private string _clientSecret=$"eow12rrq9YQqERnTPKabxpmU1QDyYsGG";
@@ -589,8 +589,8 @@ namespace api.Services.KeyCloakServices
                 using var command = new SqlCommand(query, connection);
                 command.Parameters.AddWithValue("@Username", request.Username);
                 command.Parameters.AddWithValue("@Email", request.Email);
-                command.Parameters.AddWithValue("@SDT", request.SDT);
-                command.Parameters.AddWithValue("@CCCD", request.CCCD);
+                // command.Parameters.AddWithValue("@SDT", request.SDT);
+                // command.Parameters.AddWithValue("@CCCD", request.CCCD);
 
                 var count = Convert.ToInt32(await command.ExecuteScalarAsync());
                 return count > 0;
@@ -600,6 +600,32 @@ namespace api.Services.KeyCloakServices
                 _logger.LogError($"Database error: {ex.Message}");
                 return false;
             }
+        }
+        public async Task<bool> UpdateUser(string userId, string email, string firstName, string lastName, string adminToken)
+        {
+            string apiUrl = _keycloakUrl;
+            string apiRoute = $"/admin/realms/{_realm}/users/{userId}";
+
+            using var _httpClient = new HttpClient
+            {
+                BaseAddress = new Uri(configuration.GetConnectionString(apiUrl) ?? apiUrl)
+            };
+
+            _httpClient.DefaultRequestHeaders.Clear();
+            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {adminToken}");
+
+            var payload = new
+            {
+                email     = email,
+                firstName = firstName,
+                lastName  = lastName
+            };
+
+            var json = System.Text.Json.JsonSerializer.Serialize(payload);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.PutAsync(apiRoute, content);
+            return response.IsSuccessStatusCode;
         }
 
         public async Task<bool> ResetPassword(string username, string newPassword)
@@ -614,7 +640,7 @@ namespace api.Services.KeyCloakServices
                 }
 
                 // 🔹 Lấy userId từ Keycloak dựa vào username
-                string keycloakApiUrl = $"http://172.17.10.77:8080/admin/realms/TestSSO/users?username={username}";
+                string keycloakApiUrl = $"http://192.168.93.198:8080/admin/realms/TestSSO/users?username={username}";
                 var request = new HttpRequestMessage(HttpMethod.Get, keycloakApiUrl);
                 request.Headers.Add("Authorization", $"Bearer {adminToken}");
 
@@ -647,7 +673,7 @@ namespace api.Services.KeyCloakServices
                 _logger.LogInformation($"Updating password for Keycloak user ID: {userId}");
 
                 // 🔹 Cập nhật mật khẩu mới
-                string passwordUpdateUrl = $"http://172.17.10.77:8080/admin/realms/TestSSO/users/{userId}/reset-password";
+                string passwordUpdateUrl = $"http://192.168.93.198:8080/admin/realms/TestSSO/users/{userId}/reset-password";
                 var passwordUpdatePayload = new
                 {
                     type = "password",
