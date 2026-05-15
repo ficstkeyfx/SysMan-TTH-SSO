@@ -1,0 +1,58 @@
+@using IDC.Shared.Models
+@inject ClientServices client
+@inject DialogService dialog
+
+<Form TItem="tbNhom" Record=@objNhom OnSubmit=Submit>
+    <MoreForms>
+        <div class="row">
+            <FormField Text="Tên nhóm" Size="12">
+                <RadzenTextBox @bind-Value=@objNhom.TenNhom />
+            </FormField>
+
+            <FormField Text="Mô tả" Size="12">
+                <RadzenTextBox @bind-Value=@objNhom.MoTa />
+            </FormField>
+        </div>
+    </MoreForms>
+    </Form>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> authenticationState { get; set; } = default!;
+    [Parameter] public tbNhom Record { set; get; } = default!;
+    [Parameter] public int? idPhanMem { set; get; }
+    tbNhom objNhom = new tbNhom();
+    bool AddNew = false;
+    bool Loading = true;
+    bool isRadzenSaving = false;
+    string token = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        //Loading = true;
+
+        objNhom = Record;
+
+        if (Record.IdNhom == 0)
+        {
+            AddNew = true;
+        }
+        //Loading = false;
+    }
+    protected async Task Submit(tbNhom obj)
+    {
+        isRadzenSaving = true;
+        if (obj.IdNhom == 0)
+        {
+            obj.IdNhom = await client.numServices.GetInt<tbNhom>();
+            obj.IdPhanMem = idPhanMem;
+            await client.apiSevices.Create<tbNhom>(obj);
+        }
+        else
+        {
+            await client.apiSevices.Update<tbNhom>(obj);
+        }
+        isRadzenSaving = false;
+        dialog.Close(obj);
+    }
+}

@@ -1,0 +1,75 @@
+@inject Radzen.DialogService dialog
+@inject NotificationService notificationService
+@inject NavigationManager UriHelper
+@inject ApiServices apiService
+@inject ClientServices client
+@using IDC.Frontend.Services.ApiService
+@using IDC.Frontend.Services
+@using IDC.Shared.Models
+@using SysMan.Components
+@using SysMan.Models;
+@using SysMan.Models
+
+<LoadingIndicator IsSaving="@isSaving" />
+
+<RadzenTemplateForm TItem="tbChucNang" Data="Data" Submit="@(obj => Submit((tbChucNang)obj))">
+    <div class="row">
+        <div class="col-12">
+            <FormField Text="Tên chức năng">
+                    <RadzenTextBox @bind-Value="@Data.TenChucNang"></RadzenTextBox>
+            </FormField>
+            <FormField Text="Đường dẫn">
+                    <RadzenTextBox @bind-Value="@Data.DuongDan"></RadzenTextBox>
+            </FormField>
+            <FormField Text="Biểu tượng">
+                    <RadzenTextBox @bind-Value="@Data.BieuTuong"></RadzenTextBox>
+            </FormField>
+        </div>
+    </div>
+    <div style="float: right; margin-top: 10px;">
+        <RadzenButton Style="margin-right: 10px" ButtonType="ButtonType.Submit">Lưu</RadzenButton>
+        <RadzenButton ButtonStyle="ButtonStyle.Light" Click="@(() => ReturnChucNang.InvokeAsync(null))">Hủy
+        </RadzenButton>
+    </div>
+</RadzenTemplateForm>
+
+@code {
+    [Parameter] public tbChucNang Record { set; get; } = default!;
+    [Parameter] public int? idPhanMem { set; get; } = default!;
+    [Parameter] public EventCallback<tbChucNang> ReturnChucNang { set; get; }
+    tbChucNang Data;
+    bool ChucNangCon = false;
+
+    bool isSaving = false;
+    protected override async Task OnInitializedAsync()
+    {
+        Data = Record;
+    }
+
+    async void Submit(tbChucNang obj)
+    {
+        isSaving = true;
+        if (Record.IdChucNang == 0)
+        {
+            //1. Chuẩn bị dữ liệu cho bản ghi mới
+            //Lấy Id của chức năng mới
+            obj.IdChucNang = await client.numServices.GetInt<tbChucNang>();
+            obj.IdPhanMem = idPhanMem;
+
+            //Lấy STT của chức năng
+            obj.STT = await client.numServices.GetInt<tbChucNang>();
+
+            //2. Thêm bản ghi mới vào CSDL
+            client.apiSevices.Create<tbChucNang>(obj);
+        }
+        else
+        {
+            //1. Tính toán, bổ sung dữ liệu nếu có
+
+            //2. Lưu thay đổi của dữ liệu
+            client.apiSevices.Update<tbChucNang>(obj);
+        }
+        ReturnChucNang.InvokeAsync(obj);
+        isSaving = false;
+    }
+}

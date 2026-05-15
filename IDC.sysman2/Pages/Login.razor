@@ -1,0 +1,179 @@
+@page "/login"
+@* @page "/" *@
+@using IDC.Frontend.Services.ApiService
+@using IDC.Shared.Models
+@layout LoginLayout
+@inject NavigationManager UriHelper
+@inject NotificationService notificationService
+@inject AuthenticationStateProvider authStateProvider
+@inject ApiServices apiServices
+@* @inject ClientServices client *@
+@inject AuthenServices authServices
+@inject IJSRuntime JSRuntime
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
+@inject IHttpClientFactory HttpClientFactory
+@inject HttpClient Http
+@using Microsoft.AspNetCore.WebUtilities;
+@using System.Net
+@using System.Net.Http
+@using System.Net.Http.Headers
+@using HtmlAgilityPack;
+
+<PageTitle>Đăng nhập hệ thống</PageTitle>
+<AuthorizeView>
+    <Authorized>
+        <RedirectToHome />
+    </Authorized>
+    <NotAuthorized>
+       <div class="login min-vh-100 sm:py-16 bg-secondary-100 flex-column">
+            <div class="row justify-content-center align-items-center">
+                <div class="col-6" style="width: 45%">
+                    <div class="card shadow-2-strong" style="border-radius: 0.5rem">
+                        <div class="card-body p-8">
+                            <div style="display: flex; align-items: center; justify-content: center">
+                                <img src="logo.png"
+                                    style="height:90px;width:auto; margin: 20 20 20 0; padding-right: 30px;" />
+                                <div class="text-center">
+                                    <strong style="font-size: 1.8rem; margin-left:-20px;  color: #112572">HỆ THỐNG QUẢN LÝ CÔNG VIỆC</strong>
+
+                                </div>
+                            </div>
+                            <div style="margin-left: 2rem; margin-right: 1.7rem">
+                                <RadzenTemplateForm TItem="tbSoftwareUser" Data=@NguoiDung Submit="@Authenticate">
+                                    <ChildContent Context="ctx">
+                                        <RadzenFormField style="width: 100%; margin-top: 1.5rem" Text="Tên tài khoản">
+                                            <Start>
+                                                <RadzenIcon Icon="account_circle" />
+                                            </Start>
+                                            <ChildContent>
+                                                <RadzenTextBox @bind-Value="@username" />
+                                            </ChildContent>
+                                        </RadzenFormField>
+                                        <RadzenFormField style="width: 100%; margin-top:1.5rem" Text="Mật khẩu">
+                                            <Start>
+                                                <RadzenIcon Icon="lock" />
+                                            </Start>
+                                            <ChildContent>
+                                                <RadzenTextBox @bind-Value="@passwordValue"
+                                                    Visible="@(!viewPassword)" />
+                                                <RadzenPassword @bind-Value="@passwordValue" Visible="@viewPassword" />
+                                            </ChildContent>
+                                            <End>
+                                                <RadzenButton Icon="@(viewPassword ? "visibility" : "visibility_off")"
+                                                    Click="TogglePassword" Variant="Variant.Text"
+                                                    Size="ButtonSize.Small" />
+                                            </End>
+                                        </RadzenFormField>
+                                        <div style="margin-top: 1.5rem">
+                                            <RadzenCheckBox @bind-Value=@value Name="save_login" />
+                                            <RadzenLabel Text="Ghi nhớ đăng nhập" Component="save_login"
+                                                Style="margin-left: 8px; vertical-align: middle;" />
+                                        </div>
+                                        <RadzenButton style="margin-top: 1.5rem; width: 100%; background-color:#112572 "
+                                            class="rz-info-darker" Text="Đăng nhập" ButtonType="ButtonType.Submit">
+                                        </RadzenButton>
+                                    </ChildContent>
+
+                                </RadzenTemplateForm>
+
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+
+
+@code {
+    string passwordValue = "";
+    tbSoftwareUser NguoiDung = new tbSoftwareUser();
+    bool value;
+    bool viewPassword = true;
+    string token = "";
+    public string username { get; set; }
+    bool isLoading = false;
+    void TogglePassword()
+    {
+        viewPassword = !viewPassword;
+    }
+    public class LoginReq
+    {
+        public string username { get; set; } = "";
+        public string password { get; set; } = "";
+    }
+    private string? redirect;
+    private string? client;
+    private string AppCallbackPage = "/callback";
+    private string? tokenFromQuery;
+    protected override async Task OnInitializedAsync(){
+        if(!string.IsNullOrEmpty(UriHelper.ToAbsoluteUri(UriHelper.Uri).Query))
+        {
+            AppCallbackPage += UriHelper.ToAbsoluteUri(UriHelper.Uri).Query;
+            var queryParams = QueryHelpers.ParseQuery(UriHelper.ToAbsoluteUri(UriHelper.Uri).Query);
+            if (queryParams.TryGetValue("redirect", out var redirectValues))
+            {
+                redirect = redirectValues.ToString();
+            }
+            if (queryParams.TryGetValue("client", out var clientValues))
+            {
+                client = clientValues.ToString();
+            }
+        }
+    }
+    public async void Authenticate()
+    {
+        try
+        {
+            var new_post = new
+            {
+                Username = username,
+                Password = passwordValue // Không hash, Keycloak yêu cầu mật khẩu thật
+            };
+            var contentLogin = JsonContent.Create(new_post);
+            // Gọi API AuthKeyCloakController
+            var responseAPI = await Http.PostAsync("api/AuthKeyCloak", contentLogin);
+            if (responseAPI.IsSuccessStatusCode)
+            {
+                // Đọc token từ API
+                var tokenResponse = await responseAPI.Content.ReadFromJsonAsync<TokenResponse>();
+                token = tokenResponse?.Access_token ?? "";
+                if (string.IsNullOrEmpty(token))
+                {
+                    notificationService.Notify(NotificationSeverity.Error, $"Thông báo:", "Không nhận được Access Token", duration: -1);
+                    return;
+                }else {
+                    if(!AppCallbackPage.Contains("?"))
+                        UriHelper.NavigateTo(AppCallbackPage + $"?token={token}", forceLoad: true);
+                    else {
+                        UriHelper.NavigateTo(AppCallbackPage + $"&token={token}", forceLoad: true);
+                    }
+                }
+            }
+            else
+            {
+                notificationService.Notify(NotificationSeverity.Error, $"Thông báo:", "Sai tên đăng nhập hoặc mật khẩu người dùng",
+                duration: -1);
+                return;
+            }
+            return;
+        }
+        catch
+        {
+            notificationService.Notify(NotificationSeverity.Error, $"Thông báo:", "Đã có lỗi xảy ra", duration: -1);
+            return;
+        }
+    }
+    // Model TokenResponse
+    public class TokenResponse
+    {
+        public string Access_token { get; set; }
+        public string Refresh_token { get; set; }
+        public int Expires_in { get; set; }
+        public string Token_type { get; set; }
+    }
+
+}

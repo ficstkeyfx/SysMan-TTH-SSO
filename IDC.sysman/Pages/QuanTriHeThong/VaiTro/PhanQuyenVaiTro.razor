@@ -1,0 +1,99 @@
+@page "/phan-quyen-vai-tro"
+@using IDC.Shared.Models
+@inject ClientServices client
+<style>
+    .bold-placeholder .rz-dropdown .rz-placeholder {
+        font-weight: 700;
+    }
+</style>
+
+<LoadingIndicator IsLoading="@isRadzenLoading" />
+
+
+<div class="table-wrapper bold-placeholder">
+    <!-- DROPDOWN -->
+    <div style="margin-top:10px; margin-bottom:15px">
+        <RadzenDropDown Data="@lstPhanMem"
+                        TextProperty="TenPhanMem"
+                        ValueProperty="IdPhanMem"
+                        @bind-Value="idPhanMem"
+                        Placeholder="-- Chọn phần mềm --"
+                        Style="width:100%"
+                        AllowClear="true"
+                        Change="OnPhanMemChanged" />
+    </div>
+</div>
+
+<TableAPI @ref=grd TItem="tbVaiTro" 
+          TableTitle=@tableTitle
+          DeleteFunction="false"
+          filter="@filterVaiTro"
+          AddNew=false 
+          isSearch=false 
+          ShowClose=true>
+    <MoreColumns>
+        <RadzenDataGridColumn TItem="tbVaiTro" Title="Vai trò" TextAlign="TextAlign.Left" Sortable="false"
+                              Width="100%" Property="TenVaiTro">
+        </RadzenDataGridColumn>
+    </MoreColumns>
+    <FormDialog Context="ctx">
+        <PhanQuyenVaiTro_Detail Record="ctx" />
+    </FormDialog>
+</TableAPI>
+
+@code {
+    tbSoftwareUser user = new tbSoftwareUser();
+    TableAPI<tbVaiTro> grd = default!;
+    string tableTitle = "DANH SÁCH VAI TRÒ";
+
+    List<tbPhanMem> lstPhanMem = new List<tbPhanMem>();
+    int idPhanMem;
+
+    // Điều kiện lọc dữ liệu
+    string? filterVaiTro = $"IdPhanMem==null";
+
+    // 2 cờ loading
+    bool isSelfLoading = false;   // cha đang khởi tạo / xử lý
+    bool isTableLoading = false;  // TableAPI đang load
+
+    // LoadingIndicator bind vào property này
+    bool isRadzenLoading => isSelfLoading || isTableLoading;
+
+
+    bool isRadzenDeleting = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Bắt đầu các công việc khởi tạo cha
+        isSelfLoading = true;
+        //isRadzenLoading = true;
+        StateHasChanged();
+        try
+        {
+            // TODO: việc khởi tạo của cha (gọi API, load dữ liệu, v.v.)
+            // Lọc phần mềm
+            string filter = $"VietTat!=null";
+            lstPhanMem = await client.apiSevices.GetAll<tbPhanMem>(filter);
+        }
+        finally
+        {
+            isSelfLoading = false;
+            StateHasChanged();
+        }
+    }
+    // Nhận sự kiện loading từ TableAPI
+    void HandleTableLoadingChanged(bool loading)
+    {
+        isTableLoading = loading;
+        StateHasChanged();
+    }
+    async Task OnPhanMemChanged()
+    {
+        // Lọc lấy danh sách các chức năng của phần mềm được chọn
+        // từ dropdown
+        filterVaiTro = $"IdPhanMem=={idPhanMem}";
+        await grd.Refresh();
+        StateHasChanged();
+    }
+
+}

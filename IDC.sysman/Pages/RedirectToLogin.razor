@@ -1,0 +1,20 @@
+@using Microsoft.VisualBasic
+@inject NavigationManager UriHelper
+
+@code {
+    private string Client = "TestSSO3";
+    protected override void OnAfterRender(bool firstRender)
+    {
+        var uri = new Uri(UriHelper.BaseUri);
+
+        var currentHostWithNewPort =
+            $"{uri.Scheme}://{uri.Host}:5106";
+
+        var redirect =
+            $"{uri.Scheme}://{uri.Host}:5106/callback";
+
+        UriHelper.NavigateTo(
+            $"{currentHostWithNewPort}/callback?redirect={redirect}&client={Client}"
+        );
+    }
+}

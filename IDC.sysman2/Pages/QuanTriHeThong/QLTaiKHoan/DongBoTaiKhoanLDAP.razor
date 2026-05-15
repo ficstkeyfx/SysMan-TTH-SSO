@@ -1,0 +1,251 @@
+@page "/dong-bo-tai-khoan-ldap"
+@using IDC.Frontend.Services
+@using IDC.Shared.Models
+@using SysMan.Models 
+@using SysMan.Components
+@inject NavigationManager UriHelper
+@inject NotificationService notificationService
+@inject ClientServices client
+@using System.DirectoryServices.AccountManagement
+@using System.DirectoryServices
+@using SysMan.Services.LDapServices
+@inject LdapUserService ldapUserService
+<style>
+    .rz-label {
+        margin-bottom: 0;
+        font-weight: bold;
+    }
+
+    .rz-column-title-content {
+        font-weight: bold;
+    }
+
+    .rz-textbox {
+        width: 100%;
+    }
+
+    .rz-dialog-titlebar {
+        margin-left: 20px;
+        margin-bottom: -20px;
+    }
+</style>
+
+<div class="row mb-3">
+    <div class="col-12 text-center">
+        <RadzenLabel Style="color: rgb(10, 10, 178); font-family: 'Source Sans 3', sans-serif; font-weight: bold; font-size: 25px; margin-top:15px;margin-bottom:-20px"
+                     Text="ĐỒNG BỘ TÀI KHOẢN LDAP" />
+    </div>
+</div>
+
+<Waiting Show="@isLoading" Message="Đang tải dữ liệu..." />
+
+<Form TItem="tbSoftwareUser" Record=@user SubmitAndClose=false OnSubmit=Submit>
+    <MoreForms>
+        <RadzenStack class="rz-p-0 rz-p-md-12">
+            <RadzenCard Style="margin-bottom:-60px">
+                <RadzenPickList AllowMoveAll="@allowMoveAll" AllowMoveAllSourceToTarget="@allowMoveSourceToTarget" AllowMoveAllTargetToSource="@allowMoveTargetToSource" @bind-Source="@Source" @bind-Target="@Target" Style="height:500px; width:100%;" Orientation="@orientation"
+                                TextProperty="@nameof(UserDto.UserName)" AllowFiltering="@allowFilter" Multiple="@multiple" ShowHeader="@showHeader" Disabled="@disabled"
+                                ButtonGap="@gap" ButtonJustifyContent="@justifyContent" ButtonStyle="@style" ButtonSize="@size" ButtonShade="@shade" ButtonVariant="@variant"
+                                AllowSelectAll="@allowSelectAll">
+                    <SourceHeader>
+                        @{
+                            string sTitle = "Người dùng trên LDAP chưa đồng bộ (" + Source.Count().ToString() + ")";
+                            <RadzenLabel Text=@sTitle Style="margin-bottom:10px" />
+                        }
+                    </SourceHeader>
+                    <TargetHeader>
+                        @{
+                            string tTitle = "Người dùng hệ thống (" + Target.Count().ToString() + ")";
+                            <RadzenLabel Text=@tTitle Style="margin-bottom:10px" />
+                        }
+                    </TargetHeader>
+                    <Template>
+                        @context.UserName (@context.FullName)
+                    </Template>
+                </RadzenPickList>
+            </RadzenCard>
+        </RadzenStack>
+    </MoreForms>
+</Form>
+
+@code {
+    tbSoftwareUser user = new tbSoftwareUser();
+    bool Loading = false;
+    JustifyContent justifyContent = JustifyContent.Center;
+    Variant variant = Variant.Outlined;
+    ButtonStyle style = ButtonStyle.Primary;
+    Shade shade = Shade.Default;
+    ButtonSize size = ButtonSize.Medium;
+    Orientation orientation = Orientation.Horizontal;
+
+    string gap = "12px";
+    bool allowFilter = true;
+    bool multiple = true;
+    bool allowSelectAll = true;
+    bool showHeader = true;
+    bool disabled;
+    bool allowMoveAll = true;
+    bool allowMoveSourceToTarget = true;
+    bool allowMoveTargetToSource = true;
+
+    List<vNguoiDungHeThong> vLDAPUsers = new List<vNguoiDungHeThong>();
+    List<vNguoiDungHeThong> vNguoiDungHeThongs = new List<vNguoiDungHeThong>();
+    List<UserDto> lstNguoiDungThuocNhom = new List<UserDto>();
+
+    int idNhom;
+    bool isLoading = false;
+
+    string? lamda = null;
+
+
+    IEnumerable<vNguoiDungHeThong> _source = new List<vNguoiDungHeThong>();
+    IEnumerable<vNguoiDungHeThong> Source
+    {
+        get
+        {
+            return _source;
+        }
+        set
+        {
+            if (_source != value)
+            {
+                _source = value;
+            }
+        }
+    }
+
+    IEnumerable<vNguoiDungHeThong> _target = new List<vNguoiDungHeThong>();
+    IEnumerable<vNguoiDungHeThong> Target
+    {
+        get
+        {
+            return _target;
+        }
+        set
+        {
+            if (_target != value)
+            {
+                _target = value;
+            }
+        }
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        await base.OnInitializedAsync();
+
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if(firstRender)
+        {
+            vLDAPUsers = ldapUserService.getAllLDAPUsers();
+
+            vNguoiDungHeThongs = await client.apiSevices.GetAll
+            <vNguoiDungHeThong>();
+
+            //Tạo dữ liệu nguồn cho picklist
+            var t = Target.ToList();
+            var s = Source.ToList();
+            t.Clear();
+            s.Clear();
+            if (vNguoiDungHeThongs != null)
+            {
+                foreach (var it in vNguoiDungHeThongs)
+                {
+                    vNguoiDungHeThong userDto = new vNguoiDungHeThong() { IdUser = it.IdUser, UserName = it.UserName, FullName = it.FullName };
+                    t.Add(userDto);
+                }
+            }
+            if (vLDAPUsers != null)
+            {
+                foreach (var it in vLDAPUsers)
+                {
+                    if (vNguoiDungHeThongs.Where(p => p.UserName == it.UserName).FirstOrDefault() == null)
+                    {
+                        s.Add(it);
+                    }
+                }
+            }
+
+            Source = s;
+            Target = t;
+            isLoading = false;
+            StateHasChanged();
+        }
+
+    }
+
+    protected async Task Submit(tbSoftwareUser user)
+    {
+        try
+        {
+            // Danh sách người dùng hệ thống và người dùng trong dbSysMan
+            List<tbSystemUser> lstUsr = new List<tbSystemUser>();
+            List<tbSoftwareUser> lstUser = new List<tbSoftwareUser>();
+
+            // Danh sách can bộ và người dùng trong dbPSA_Lab
+            // List<tbCanBo> lstCanBo = new List<tbCanBo>();
+            // List<tbNguoi> lstNguoi = new List<tbNguoi>();
+
+            foreach(var us in Target)
+            {
+                bool found = false;
+                foreach(var us1 in vNguoiDungHeThongs)
+                {
+                    if(us.UserName.ToLower()==us1.UserName.ToLower())
+                    {
+                        found = true;
+                        break;
+                    }
+
+                }
+                if(found==false)
+                {
+                    tbSystemUser usr = new tbSystemUser();
+                    usr.IdUser = await client.numServices.GetInt<tbSoftwareUser>();
+                    usr.UserName = us.UserName;
+                    usr.FullName = us.FullName;
+
+                    lstUsr.Add(usr);
+
+                    tbSoftwareUser user1 = new tbSoftwareUser();
+                    user1.IdUser = usr.IdUser;
+                    user1.UserName = usr.UserName;
+                    user1.FullName = us.FullName;
+                    lstUser.Add(user1);
+
+                    // tbNguoi nguoi = new tbNguoi();
+                    // nguoi.IdNguoi = await client.numServices.GetInt<tbNguoi>();
+                    // nguoi.HoDem = usr.FullName.Substring(0,usr.FullName.LastIndexOf(" "));
+                    // nguoi.Ten = usr.FullName.Substring(usr.FullName.LastIndexOf(" ") + 1);
+                    // lstNguoi.Add(nguoi);
+
+                    
+                    // tbCanBo canbo = new tbCanBo();
+                    // canbo.IdCanBo = await client.numServices.GetInt<tbCanBo>();// lấy ở psa
+                    // canbo.IdNguoi = nguoi.IdNguoi;
+                    // lstCanBo.Add(canbo);
+                }
+            }
+
+            if (lstUsr.Count > 0)
+            {
+                await client.apiSevices.Create<tbSystemUser>(lstUsr);
+                await client.apiSevices.Create<tbSoftwareUser>(lstUser);
+                // await client.apiSevices.Create<tbNguoi>(lstNguoi);
+                // await client.apiSevices.Create<tbCanBo>(lstCanBo);
+            
+            }
+        }
+        catch
+        {
+            
+        }
+    }
+    
+}
+

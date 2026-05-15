@@ -1,0 +1,110 @@
+@page "/PQNhomNguoiDung"
+@using IDC.Shared.Models
+@inject ClientServices client
+<style>
+    .bold-placeholder .rz-dropdown .rz-placeholder {
+        font-weight: 700;
+    }
+</style>
+
+<LoadingIndicator IsLoading="@isRadzenLoading" />
+
+<div class="table-wrapper bold-placeholder">
+    <!-- DROPDOWN -->
+    <div style="margin-top:10px; margin-bottom:15px">
+        <RadzenDropDown class="dropdown-bold-placeholder" Data="@lstPhanMem"
+                        TextProperty="TenPhanMem"
+                        ValueProperty="IdPhanMem"
+                        @bind-Value="idPhanMem"
+                        Placeholder="-- Chọn phần mềm --"
+                        Style="width:100%"
+                        AllowClear="true"
+                        Change="OnPhanMemChanged" />
+    </div>
+</div>
+
+
+<TableAPI @ref=grd TItem="tbNhom" 
+          TableTitle=@tableTitle
+          DeleteFunction="false"
+          AddNew=false 
+          isSearch=false 
+          ShowClose=true 
+          OnDelete="@(args => Delete((tbNhom)args))"
+          OnLoadingChanged="HandleTableLoadingChanged">
+    <MoreColumns>
+        <RadzenDataGridColumn TItem="tbNhom" Title="Tên nhóm" TextAlign="TextAlign.Left" Sortable="false"
+                              Width="200px" Property="TenNhom" Frozen="true">
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="tbNhom" Title="Mô tả nhóm" TextAlign="TextAlign.Left" Sortable="false"
+                              Width="100%" Property="MoTa" Frozen="true">
+        </RadzenDataGridColumn>
+    </MoreColumns>
+    <FormDialog Context="ctx">
+        <QLPhanQuyen_Detail Record="ctx" />
+    </FormDialog>
+</TableAPI>
+
+@code {
+    tbSoftwareUser user = new tbSoftwareUser();
+    TableAPI<tbNhom> grd = default!;
+    string tableTitle = "DANH SÁCH NHÓM NGƯỜI DÙNG";
+    string formTitle = "THÔNG TIN NHÓM NGƯỜI DÙNG";
+
+    List<tbPhanMem> lstPhanMem = new List<tbPhanMem>();
+    int idPhanMem;
+    // Điều kiện lọc dữ liệu
+    string? filterNhom = $"IdPhanMem==null";
+
+    // 2 cờ loading
+    bool isSelfLoading = false;   // cha đang khởi tạo / xử lý
+    bool isTableLoading = false;  // TableAPI đang load
+
+    // LoadingIndicator bind vào property này
+    bool isRadzenLoading => isSelfLoading || isTableLoading;
+
+
+    bool isRadzenDeleting = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Bắt đầu các công việc khởi tạo cha
+        isSelfLoading = true;
+        //isRadzenLoading = true;
+        StateHasChanged();
+        try
+        {
+            // TODO: việc khởi tạo của cha (gọi API, load dữ liệu, v.v.)
+            // ví dụ:
+            // var userInfo = await client.GetUserInfo();
+            // user = userInfo.Data;
+
+            await Task.Delay(500); // demo thôi, bạn thay bằng code thật
+        }
+        finally
+        {
+            isSelfLoading = false;
+            StateHasChanged();
+        }
+    }
+    // Nhận sự kiện loading từ TableAPI
+    void HandleTableLoadingChanged(bool loading)
+    {
+        isTableLoading = loading;
+        StateHasChanged();
+    }
+
+    async Task OnPhanMemChanged()
+    {
+        // Lọc lấy danh sách các chức năng của phần mềm được chọn
+        // từ dropdown
+        filterNhom = $"IdPhanMem=={idPhanMem}";
+        await grd.Refresh();
+        StateHasChanged();
+    }
+    protected async Task Delete(tbNhom record)
+    {
+        string filterEpx = $"IdNhom == {record.IdNhom}";
+        await client.apiSevices.Delete<tbNhom>(filterEpx);
+    }
+}

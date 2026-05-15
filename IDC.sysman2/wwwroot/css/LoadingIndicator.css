@@ -1,0 +1,1029 @@
+﻿.rz-effect-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.2));
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.rz-effect-text {
+    font-size: 1.33rem;
+    color: #832AFF;
+    margin-top: 1.2rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-align: center;
+    text-transform: uppercase;
+}
+/* --------------------- Hiệu ứng tìm kiếm --------------------- */
+
+/*.search-image-wrapper {
+    position: relative;
+    width: 90px;
+    height: 90px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+.search-file-img {
+    width: 90px;
+    height: 90px;
+    display: block;
+    border-radius: 12px;
+}
+
+.search-lens-onimg {
+    position: absolute;
+    top: 34px;
+    left: 0;
+    z-index: 2;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.search-move-onimg {
+    font-size: 2.6rem !important;
+    color: #4B4B4B !important;
+    animation: search-img-jump 2s cubic-bezier(.61,.14,.37,1.04) infinite;
+    filter: drop-shadow(0 2px 10px rgba(25, 118, 210, 0.14));
+}
+
+@keyframes search-img-jump {
+    0% {
+        transform: translate(55.75px, 24.75px) scale(1.000);
+        opacity: 1.000;
+    }
+
+    1% {
+        transform: translate(55.03px, 25.37px) scale(1.009);
+        opacity: 1.000;
+    }
+
+    2% {
+        transform: translate(54.22px, 25.88px) scale(1.019);
+        opacity: 0.999;
+    }
+
+    3% {
+        transform: translate(53.32px, 26.30px) scale(1.028);
+        opacity: 0.999;
+    }
+
+    4% {
+        transform: translate(52.33px, 26.61px) scale(1.037);
+        opacity: 0.998;
+    }
+
+    5% {
+        transform: translate(51.26px, 26.82px) scale(1.046);
+        opacity: 0.996;
+    }
+
+    6% {
+        transform: translate(50.11px, 26.92px) scale(1.055);
+        opacity: 0.995;
+    }
+
+    7% {
+        transform: translate(48.88px, 26.91px) scale(1.064);
+        opacity: 0.993;
+    }
+
+    8% {
+        transform: translate(47.58px, 26.80px) scale(1.072);
+        opacity: 0.991;
+    }
+
+    9% {
+        transform: translate(46.21px, 26.58px) scale(1.080);
+        opacity: 0.988;
+    }
+
+    10% {
+        transform: translate(44.79px, 26.26px) scale(1.088);
+        opacity: 0.986;
+    }
+
+    11% {
+        transform: translate(43.31px, 25.83px) scale(1.096);
+        opacity: 0.983;
+    }
+
+    12% {
+        transform: translate(41.78px, 25.30px) scale(1.103);
+        opacity: 0.980;
+    }
+
+    13% {
+        transform: translate(40.21px, 24.67px) scale(1.109);
+        opacity: 0.976;
+    }
+
+    14% {
+        transform: translate(38.60px, 23.95px) scale(1.116);
+        opacity: 0.973;
+    }
+
+    15% {
+        transform: translate(36.97px, 23.13px) scale(1.121);
+        opacity: 0.969;
+    }
+
+    16% {
+        transform: translate(35.31px, 22.22px) scale(1.127);
+        opacity: 0.965;
+    }
+
+    17% {
+        transform: translate(33.63px, 21.22px) scale(1.131);
+        opacity: 0.961;
+    }
+
+    18% {
+        transform: translate(31.94px, 20.13px) scale(1.136);
+        opacity: 0.957;
+    }
+
+    19% {
+        transform: translate(30.25px, 18.97px) scale(1.139);
+        opacity: 0.953;
+    }
+
+    20% {
+        transform: translate(28.56px, 17.74px) scale(1.143);
+        opacity: 0.948;
+    }
+
+    21% {
+        transform: translate(26.88px, 16.43px) scale(1.145);
+        opacity: 0.944;
+    }
+
+    22% {
+        transform: translate(25.22px, 15.06px) scale(1.147);
+        opacity: 0.939;
+    }
+
+    23% {
+        transform: translate(23.58px, 13.62px) scale(1.149);
+        opacity: 0.934;
+    }
+
+    24% {
+        transform: translate(21.97px, 12.14px) scale(1.150);
+        opacity: 0.930;
+    }
+
+    25% {
+        transform: translate(20.39px, 10.61px) scale(1.150);
+        opacity: 0.925;
+    }
+
+    26% {
+        transform: translate(18.86px, 9.03px) scale(1.150);
+        opacity: 0.920;
+    }
+
+    27% {
+        transform: translate(17.38px, 7.42px) scale(1.149);
+        opacity: 0.916;
+    }
+
+    28% {
+        transform: translate(15.94px, 5.78px) scale(1.147);
+        opacity: 0.911;
+    }
+
+    29% {
+        transform: translate(14.57px, 4.12px) scale(1.145);
+        opacity: 0.906;
+    }
+
+    30% {
+        transform: translate(13.26px, 2.44px) scale(1.143);
+        opacity: 0.902;
+    }
+
+    31% {
+        transform: translate(12.03px, 0.75px) scale(1.139);
+        opacity: 0.897;
+    }
+
+    32% {
+        transform: translate(10.87px, -0.94px) scale(1.136);
+        opacity: 0.893;
+    }
+
+    33% {
+        transform: translate(9.78px, -2.63px) scale(1.131);
+        opacity: 0.889;
+    }
+
+    34% {
+        transform: translate(8.78px, -4.31px) scale(1.127);
+        opacity: 0.885;
+    }
+
+    35% {
+        transform: translate(7.87px, -5.97px) scale(1.121);
+        opacity: 0.881;
+    }
+
+    36% {
+        transform: translate(7.05px, -7.60px) scale(1.116);
+        opacity: 0.877;
+    }
+
+    37% {
+        transform: translate(6.33px, -9.21px) scale(1.109);
+        opacity: 0.874;
+    }
+
+    38% {
+        transform: translate(5.70px, -10.78px) scale(1.103);
+        opacity: 0.870;
+    }
+
+    39% {
+        transform: translate(5.17px, -12.31px) scale(1.096);
+        opacity: 0.867;
+    }
+
+    40% {
+        transform: translate(4.74px, -13.79px) scale(1.088);
+        opacity: 0.864;
+    }
+
+    41% {
+        transform: translate(4.42px, -15.21px) scale(1.080);
+        opacity: 0.862;
+    }
+
+    42% {
+        transform: translate(4.20px, -16.58px) scale(1.072);
+        opacity: 0.859;
+    }
+
+    43% {
+        transform: translate(4.09px, -17.88px) scale(1.064);
+        opacity: 0.857;
+    }
+
+    44% {
+        transform: translate(4.08px, -19.11px) scale(1.055);
+        opacity: 0.855;
+    }
+
+    45% {
+        transform: translate(4.18px, -20.26px) scale(1.046);
+        opacity: 0.854;
+    }
+
+    46% {
+        transform: translate(4.39px, -21.33px) scale(1.037);
+        opacity: 0.852;
+    }
+
+    47% {
+        transform: translate(4.70px, -22.32px) scale(1.028);
+        opacity: 0.851;
+    }
+
+    48% {
+        transform: translate(5.12px, -23.22px) scale(1.019);
+        opacity: 0.851;
+    }
+
+    49% {
+        transform: translate(5.63px, -24.03px) scale(1.009);
+        opacity: 0.850;
+    }
+
+    50% {
+        transform: translate(6.25px, -24.75px) scale(1.000);
+        opacity: 0.850;
+    }
+
+    51% {
+        transform: translate(6.97px, -25.37px) scale(0.991);
+        opacity: 0.850;
+    }
+
+    52% {
+        transform: translate(7.78px, -25.88px) scale(0.981);
+        opacity: 0.851;
+    }
+
+    53% {
+        transform: translate(8.68px, -26.30px) scale(0.972);
+        opacity: 0.851;
+    }
+
+    54% {
+        transform: translate(9.67px, -26.61px) scale(0.963);
+        opacity: 0.852;
+    }
+
+    55% {
+        transform: translate(10.74px, -26.82px) scale(0.954);
+        opacity: 0.854;
+    }
+
+    56% {
+        transform: translate(11.89px, -26.92px) scale(0.945);
+        opacity: 0.855;
+    }
+
+    57% {
+        transform: translate(13.12px, -26.91px) scale(0.936);
+        opacity: 0.857;
+    }
+
+    58% {
+        transform: translate(14.42px, -26.80px) scale(0.928);
+        opacity: 0.859;
+    }
+
+    59% {
+        transform: translate(15.79px, -26.58px) scale(0.920);
+        opacity: 0.862;
+    }
+
+    60% {
+        transform: translate(17.21px, -26.26px) scale(0.912);
+        opacity: 0.864;
+    }
+
+    61% {
+        transform: translate(18.69px, -25.83px) scale(0.904);
+        opacity: 0.867;
+    }
+
+    62% {
+        transform: translate(20.22px, -25.30px) scale(0.897);
+        opacity: 0.870;
+    }
+
+    63% {
+        transform: translate(21.79px, -24.67px) scale(0.891);
+        opacity: 0.874;
+    }
+
+    64% {
+        transform: translate(23.40px, -23.95px) scale(0.884);
+        opacity: 0.877;
+    }
+
+    65% {
+        transform: translate(25.03px, -23.13px) scale(0.879);
+        opacity: 0.881;
+    }
+
+    66% {
+        transform: translate(26.69px, -22.22px) scale(0.873);
+        opacity: 0.885;
+    }
+
+    67% {
+        transform: translate(28.37px, -21.22px) scale(0.869);
+        opacity: 0.889;
+    }
+
+    68% {
+        transform: translate(30.06px, -20.13px) scale(0.864);
+        opacity: 0.893;
+    }
+
+    69% {
+        transform: translate(31.75px, -18.97px) scale(0.861);
+        opacity: 0.897;
+    }
+
+    70% {
+        transform: translate(33.44px, -17.74px) scale(0.857);
+        opacity: 0.902;
+    }
+
+    71% {
+        transform: translate(35.12px, -16.43px) scale(0.855);
+        opacity: 0.906;
+    }
+
+    72% {
+        transform: translate(36.78px, -15.06px) scale(0.853);
+        opacity: 0.911;
+    }
+
+    73% {
+        transform: translate(38.42px, -13.62px) scale(0.851);
+        opacity: 0.916;
+    }
+
+    74% {
+        transform: translate(40.03px, -12.14px) scale(0.850);
+        opacity: 0.920;
+    }
+
+    75% {
+        transform: translate(41.61px, -10.61px) scale(0.850);
+        opacity: 0.925;
+    }
+
+    76% {
+        transform: translate(43.14px, -9.03px) scale(0.850);
+        opacity: 0.930;
+    }
+
+    77% {
+        transform: translate(44.62px, -7.42px) scale(0.851);
+        opacity: 0.934;
+    }
+
+    78% {
+        transform: translate(46.06px, -5.78px) scale(0.853);
+        opacity: 0.939;
+    }
+
+    79% {
+        transform: translate(47.43px, -4.12px) scale(0.855);
+        opacity: 0.944;
+    }
+
+    80% {
+        transform: translate(48.74px, -2.44px) scale(0.857);
+        opacity: 0.948;
+    }
+
+    81% {
+        transform: translate(49.97px, -0.75px) scale(0.861);
+        opacity: 0.953;
+    }
+
+    82% {
+        transform: translate(51.13px, 0.94px) scale(0.864);
+        opacity: 0.957;
+    }
+
+    83% {
+        transform: translate(52.22px, 2.63px) scale(0.869);
+        opacity: 0.961;
+    }
+
+    84% {
+        transform: translate(53.22px, 4.31px) scale(0.873);
+        opacity: 0.965;
+    }
+
+    85% {
+        transform: translate(54.13px, 5.97px) scale(0.879);
+        opacity: 0.969;
+    }
+
+    86% {
+        transform: translate(54.95px, 7.60px) scale(0.884);
+        opacity: 0.973;
+    }
+
+    87% {
+        transform: translate(55.67px, 9.21px) scale(0.891);
+        opacity: 0.976;
+    }
+
+    88% {
+        transform: translate(56.30px, 10.78px) scale(0.897);
+        opacity: 0.980;
+    }
+
+    89% {
+        transform: translate(56.83px, 12.31px) scale(0.904);
+        opacity: 0.983;
+    }
+
+    90% {
+        transform: translate(57.26px, 13.79px) scale(0.912);
+        opacity: 0.986;
+    }
+
+    91% {
+        transform: translate(57.58px, 15.21px) scale(0.920);
+        opacity: 0.988;
+    }
+
+    92% {
+        transform: translate(57.80px, 16.58px) scale(0.928);
+        opacity: 0.991;
+    }
+
+    93% {
+        transform: translate(57.91px, 17.88px) scale(0.936);
+        opacity: 0.993;
+    }
+
+    94% {
+        transform: translate(57.92px, 19.11px) scale(0.945);
+        opacity: 0.995;
+    }
+
+    95% {
+        transform: translate(57.82px, 20.26px) scale(0.954);
+        opacity: 0.996;
+    }
+
+    96% {
+        transform: translate(57.61px, 21.33px) scale(0.963);
+        opacity: 0.998;
+    }
+
+    97% {
+        transform: translate(57.30px, 22.32px) scale(0.972);
+        opacity: 0.999;
+    }
+
+    98% {
+        transform: translate(56.88px, 23.22px) scale(0.981);
+        opacity: 0.999;
+    }
+
+    99% {
+        transform: translate(56.37px, 24.03px) scale(0.991);
+        opacity: 1.000;
+    }
+
+    100% {
+        transform: translate(55.75px, 24.75px) scale(1.000);
+        opacity: 1.000;
+    }
+}*/
+.search-scan-wrapper {
+    --item-h: 80px;
+    --gap: 14px;
+    --item-w: 70%;
+    width: 420px;
+    height: calc(var(--item-h) * 3 + var(--gap) * 2);
+    margin: auto;
+    overflow: hidden;
+    position: absolute;
+    top: 45%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* Viewport của list */
+.list-viewport {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    position: relative;
+}
+
+.list-track {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap);
+}
+
+.list-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: var(--item-h);
+    padding: 12px 16px;
+    border-radius: 10px;
+    background: linear-gradient(180deg, #fff, #f7f1ff);
+    opacity: 0.5;
+    transform: scale(0.94);
+    transition: all 0.3s ease;
+    width: var(--item-w);
+    margin: 0 auto;
+}
+
+    .list-item.highlight {
+        opacity: 1;
+        transform: scale(1.05);
+        background: linear-gradient(180deg, #fff, #f0e6ff);
+        box-shadow: 0 6px 16px rgba(131,42,255,0.15);
+        border-radius: 10px;
+        width: var(--item-w);
+        margin: 0 auto;
+    }
+
+.item-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #fff;
+    border: 3px solid #832AFF;
+}
+
+.item-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+
+.text-line.long,
+.text-line.short {
+    height: 10px; 
+    background: #ddd; 
+    border-radius: 6px; 
+}
+
+.text-line.long {
+    width: 80%;
+}
+
+.text-line.short {
+    width: 50%;
+}
+
+/* --- KÍNH LÚP (toàn bộ khối) --- */
+.magnifier {
+    position: absolute;
+    top: 40%;
+    left: 40%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 10;
+    animation: magnifierMove 2.5s ease-in-out infinite;
+}
+
+/* --- Bao toàn bộ kính lúp --- */
+.magnifier-wrapper {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform-origin: center center;
+}
+
+/* --- Kính tròn --- */
+.magnifier-glass {
+    position: relative;
+    transform: translate(36px, -20px);
+    width: 75px;
+    height: 75px;
+    border-radius: 50%;
+    border: 6px solid #0078ff;
+    background: radial-gradient(circle at 40% 40%, rgba(255,255,255,0.45), rgba(255,255,255,0.1));
+    box-shadow: 0 0 25px rgba(0,120,255,0.25), inset 0 0 15px rgba(0,120,255,0.2);
+    backdrop-filter: blur(0.5px);
+}
+
+/* --- Vòng xoay trong kính --- */
+.inner-ring {
+    position: absolute;
+    inset: 10px;
+    border-radius: 50%;
+    border: 4px solid rgba(0,120,255,0.5);
+    border-top-color: transparent;
+    border-left-color: transparent;
+    animation: rotateRing 0.5s linear infinite;
+}
+
+/* --- Thân kính (nối + tay cầm) --- */
+.magnifier-body {
+    position: absolute;
+    bottom: -10px; 
+    right: -5px; 
+    transform-origin: top center;
+    transform: rotate(-45deg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* --- Thanh nối --- */
+.magnifier-connector {
+    width: 8px;
+    height: 28px;
+    background: linear-gradient(180deg, #0078ff, #005fd1);
+    border-radius: 4px;
+    box-shadow: 0 0 6px rgba(0,120,255,0.3);
+}
+
+/* --- Tay cầm --- */
+.magnifier-handle {
+    width: 20px;
+    height: 45px;
+    background: linear-gradient(180deg, #0078ff, #0047b3);
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+    margin-top: -8px; 
+}
+
+.rz-search-text {
+    font-size: 1.33rem;
+    color: #832AFF;
+    margin-top: 14.7rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+/* --- Animation vòng xoay --- */
+@keyframes rotateRing {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    25%, 50% {
+        transform: rotate(120deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+
+@keyframes magnifierMove {
+    0% {
+        transform: translate(0px, 0px) scale(1) rotate(0deg);
+    }
+
+    25% {
+        transform: translate(20px, -10px) scale(1.05) rotate(-25deg);
+    }
+
+    50% {
+        transform: translate(0px, -15px) scale(1.1) rotate(0deg);
+    }
+
+    75% {
+        transform: translate(-20px, -10px) scale(1.05) rotate(25deg);
+    }
+
+    100% {
+        transform: translate(0px, 0px) scale(1) rotate(0deg);
+    }
+}
+
+
+/* --------------------- Hiệu ứng xóa --------------------- */
+
+.delete-anim-vertical {
+    position: relative;
+    width: 60px;
+    height: 120px;
+    margin: 0 auto;
+}
+
+.docs-icon {
+    color: #1976D2 !important;
+    position: absolute;
+    left: 0;
+    top: 0;
+    font-size: 45px;
+    transform-origin: center bottom;
+    animation: document-drop-trash 1.35s cubic-bezier(.42,.02,.58,1) infinite;
+    animation-fill-mode: backwards;
+}
+
+@keyframes document-drop-trash {
+    0% {
+        transform: translateX(6.5px) translateY(0) scale(1);
+        opacity: 1;
+    }
+
+    70% {
+        transform: translateX(6.5px) translateY(50px) scale(0.9);
+        opacity: 1;
+    }
+
+    85% {
+        transform: translateX(6.5px) translateY(60px) scale(0.75);
+        opacity: 0.85;
+    }
+
+    100% {
+        transform: translateX(6.5px) translateY(65px) scale(0.6);
+        opacity: 0.1;
+    }
+}
+
+.rz-effect-trash-static {
+    color: #C62828 !important;
+    position: absolute;
+    left: 0;
+    top: 60px;
+    font-size: 70px;
+    animation: trash-shake-vert-repeat 1.5s cubic-bezier(.36,.07,.19,.97) infinite;
+    animation-fill-mode: backwards;
+}
+
+@keyframes trash-shake-vert-repeat {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    18% {
+        transform: rotate(-10deg);
+    }
+
+    35% {
+        transform: rotate(7deg);
+    }
+
+    44% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(0deg);
+    }
+}
+
+
+/* --------------------- Hiệu ứng lưu ---------------------*/
+
+
+.rz-effect-hdd-svg {
+    fill: #1976D2;
+    animation: hdd-pulse 1.12s cubic-bezier(.53,.22,.56,.81) infinite;
+    filter: drop-shadow(0 0 14px #90caf9);
+    position: relative;
+    top: 8px;
+}
+
+.data-dot {
+    position: absolute;
+    top: -18px;
+    width: 11px;
+    height: 11px;
+    background: radial-gradient(circle at 50% 35%, #90caf9 60%, #1976D2 95%);
+    border-radius: 50%;
+    opacity: 0.9;
+    z-index: 2;
+    animation: dot-drop 0.76s cubic-bezier(.55,.07,.88,.45) infinite;
+}
+
+.dot1 {
+    left: 14px;
+    animation-delay: 0.1s;
+    background: radial-gradient(circle at 50% 35%, #ffd600 70%, #ffab00 100%); /* vàng đậm */
+}
+
+.dot2 {
+    left: 24px;
+    animation-delay: 0.4s;
+    background: radial-gradient(circle at 50% 35%, #00c853 70%, #2e7d32 100%); /* xanh lá đậm */
+}
+
+.dot3 {
+    left: 34px;
+    animation-delay: 0.7s;
+    background: radial-gradient(circle at 50% 35%, #d50000 70%, #b71c1c 100%); /* đỏ đậm */
+}
+
+@keyframes dot-drop {
+    0% {
+        top: -18px;
+        opacity: 0.0;
+    }
+
+    14% {
+        opacity: 1;
+    }
+
+    70% {
+        top: 37px;
+        opacity: 0.9;
+    }
+
+    100% {
+        top: 59px;
+        opacity: 0.0;
+    }
+}
+
+@keyframes hdd-pulse {
+    0% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 10px #90caf9);
+    }
+
+    40% {
+        transform: scale(1.09);
+        filter: drop-shadow(0 0 40px #1976D2);
+    }
+
+    60% {
+        transform: scale(1.13);
+        filter: drop-shadow(0 0 60px #2196F3);
+    }
+
+    100% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 10px #90caf9);
+    }
+}
+
+/* --------------------- Hiệu ứng tải lên --------------------- */
+.trail-loader {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+    
+    .trail-loader div {
+        position: absolute;
+        border-radius: 50%;
+        background: #00aaff;
+        width: 18px;
+        height: 18px;
+        transform-origin: center;
+        animation: orbitTrail 1.5s linear infinite;
+        animation-timing-function: linear;
+        transform: rotate(200deg) translateX(40px) rotate(-200deg);
+    }
+
+
+
+        /* Các chấm có kích thước giảm dần và delay khác nhau */
+        .trail-loader div:nth-child(1) {
+            width: 14px;
+            height: 14px;
+            animation-delay: 0s;
+        }
+
+        .trail-loader div:nth-child(2) {
+            width: 13px;
+            height: 13px;
+            animation-delay: 0.08s;
+            opacity: 0.85;
+        }
+
+        .trail-loader div:nth-child(3) {
+            width: 12px;
+            height: 12px;
+            animation-delay: 0.16s;
+            opacity: 0.7;
+        }
+
+        .trail-loader div:nth-child(4) {
+            width: 11px;
+            height: 11px;
+            animation-delay: 0.24s;
+            opacity: 0.6;
+        }
+
+        .trail-loader div:nth-child(5) {
+            width: 10px;
+            height: 10px;
+            animation-delay: 0.36s;
+            opacity: 0.5;
+            
+        }
+
+        .trail-loader div:nth-child(6) {
+            width: 9px;
+            height: 9px;
+            animation-delay: 0.40s;
+            opacity: 0.4;
+        }
+
+
+@keyframes orbitTrail {
+    0% {
+        transform: rotate(180deg) translateX(40px) rotate(-180deg);
+    }
+    
+    36% {
+        transform: rotate(270deg) translateX(40px) rotate(-270deg);
+    }
+    
+    65% {
+        transform: rotate(270deg) translateX(40px) rotate(-270deg);
+    }
+    
+    100% {
+        transform: rotate(540deg) translateX(40px) rotate(-540deg);
+    }
+}
+
+
+
+
+

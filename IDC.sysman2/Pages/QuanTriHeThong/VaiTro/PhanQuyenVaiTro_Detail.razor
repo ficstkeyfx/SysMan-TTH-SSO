@@ -1,0 +1,178 @@
+@using IDC.Frontend.Services
+@using IDC.Shared.Models
+@using SysMan.Models
+@inject Radzen.DialogService dialog
+@inject NotificationService notificationService
+@inject NavigationManager UriHelper
+@inject IJSRuntime JSRuntime
+@inject ClientServices client
+@using Microsoft.EntityFrameworkCore;
+@using SysMan.Components
+@using SysMan.Services
+
+<LoadingIndicator IsLoading="@isLoading" />
+<LoadingIndicator IsSaving="@isSaving" />
+
+<div class="col-12">
+    <RadzenLabel Text="DANH SÁCH CHỨC NĂNG"
+                 Style="font-family:'Source Sans Pro', sans-serif;
+           font-weight:500;
+           color:#000;
+           font-size:18px;
+           margin:10px 0;
+           width:100%;
+           display:block;
+           text-align:center;">
+    </RadzenLabel>
+    <RadzenCard>
+        <RadzenTree Style="height: 350px; width: 100%">
+            @renderFeature(null, 1, "")
+        </RadzenTree>
+    </RadzenCard>
+    <div style="margin-top: 10px; float: right">
+        <RadzenButton Style="margin-right: 10px" Click="Submit">Cập nhật</RadzenButton>
+        <RadzenButton ButtonStyle="ButtonStyle.Light" Click="Cancel">Thoát</RadzenButton>
+    </div>
+</div>
+
+
+@code {
+
+    // Vai trò truyền vào
+    [Parameter] public tbVaiTro Record { get; set; }
+
+    // Lưu danh sách chức năng của phần mềm
+    List<tbChucNang> lstChucNang = new List<tbChucNang>();
+
+    // Lưu danh sách các chức năng của Vai trò hiện tại
+    List<tbChucNang_VaiTro> lstChucNang_VaiTro = new List<tbChucNang_VaiTro>();
+
+    // Lưu danh sách các Id Chức năng
+    List<int?> featureId = new List<int?>();
+
+    // Lưu danh sách các chức năng đã có
+    List<bool> lstCheckBox = new List<bool>();
+
+    string orderby = "STT asc";
+    string? lamda = null;
+    int? IdPhanMem;
+
+    // Biến điều khiển hiệu ứng người dùng
+    bool isLoading = false; // Trạng thái tải dữ liệu
+    bool isSaving = false; //  Trạng thái lưu dữ liệu
+
+    // Điều khiện lọc phần mềm
+    string softwareFilter = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+
+        // Lấy danh sách chức năng của phần mềm
+        IdPhanMem = Record.IdPhanMem;
+        softwareFilter = $"IdPhanMem=={IdPhanMem}";
+        lstChucNang = await client.apiSevices.GetAll<tbChucNang>(softwareFilter, orderby);
+
+
+        // Lấy danh sách các chức năng của vai trò được chọn
+        lamda = $"IdVaiTro=={Record.IdVaiTro}";
+        lstChucNang_VaiTro = await client.apiSevices.GetAll<tbChucNang_VaiTro>(lamda);
+
+        // Lấy mã chức năng của vai trò được chọn
+        featureId = lstChucNang_VaiTro.Select(p => p.IdChucNang).ToList();
+        
+
+        //Đánh dấu các trức năng của vai trò được chọn
+        lstChucNang.ForEach(item =>
+        {
+            bool flag = featureId.Contains(item.IdChucNang) ? true : false;
+            lstCheckBox.Add(flag);
+        });
+
+
+        base.OnInitialized();
+
+        isLoading = false;
+    }
+
+    // Sinh giao diện
+    RenderFragment renderFeature(int? Parent, int level, string STT)
+    {
+        List<tbChucNang> list = lstChucNang.Where(item => item.ChucNangCha == Parent).OrderBy(item => item.STT).ToList();
+
+        return
+    @<div>
+            @for (int i = 0; i < list.Count; i++)
+        {
+            tbChucNang item = list[i];
+            int Index = lstChucNang.IndexOf(item);
+            List<string> arr = STT.Split(".").ToList();
+            if (arr.Count == 1)
+            {
+                arr[arr.Count - 1] = (i + 1).ToString();
+            }
+            else
+            {
+                arr.Add((i + 1).ToString());
+            }
+            List<tbChucNang> temp = lstChucNang.Where(para => para.ChucNangCha == item.IdChucNang).ToList();
+            bool checkRender = temp.Count > 0 ? true : false;
+            @if (checkRender)
+            {
+                                <RadzenTreeItem>
+                                    <Template>
+                                        <RadzenCheckBox @bind-Value=@lstCheckBox[Index] Style="margin-right: 10px" /> @(String.Join(".", arr) + ". "
+            + item.TenChucNang)
+                                    </Template>
+                                    <ChildContent>
+                        @renderFeature(item.IdChucNang, level + 1, String.Join(".", arr))
+                                    </ChildContent>
+                                </RadzenTreeItem>
+            }
+            else
+            {
+                                <RadzenTreeItem>
+                                    <Template>
+                                        <RadzenCheckBox @bind-Value=@lstCheckBox[Index] Style="margin-right: 10px" /> @(String.Join(".", arr) + ". "
+            + item.TenChucNang)
+                                    </Template>
+                                </RadzenTreeItem>
+            }
+
+        }
+    </div>
+    ;
+    }
+
+    void Cancel()
+    {
+        dialog.Close(null);
+    }
+
+    async void Submit()
+    {
+        isSaving = true;
+
+        //Bỏ các chức năng ban đầu của vai trò
+        await client.apiSevices.Delete<tbChucNang_VaiTro>(lstChucNang_VaiTro);
+
+        //Bổ sung các chức năng mới của vai trò
+        List<tbChucNang_VaiTro> tmp=new List<tbChucNang_VaiTro>();
+        for (int i = 0; i < lstChucNang.Count; i++)
+        {
+            if (lstCheckBox[i] == true)
+            {
+                tbChucNang_VaiTro chucnang_vaitro = new tbChucNang_VaiTro();
+                chucnang_vaitro.IdChucNang_VaiTro = await client.numServices.GetInt<tbChucNang_VaiTro>();
+                chucnang_vaitro.IdChucNang = lstChucNang[i].IdChucNang;
+                chucnang_vaitro.IdVaiTro = Record.IdVaiTro;
+                chucnang_vaitro.IdPhanMem = Record.IdPhanMem;
+                tmp.Add(chucnang_vaitro);
+            }
+        }
+        await client.apiSevices.Create<tbChucNang_VaiTro>(tmp);
+
+        isSaving = false;
+        dialog.Close();
+    }
+}

@@ -1,0 +1,59 @@
+@inject Radzen.DialogService dialog
+@inject NotificationService notificationService
+@inject NavigationManager UriHelper
+@inject IJSRuntime JSRuntime
+@inject ApiServices apiService
+@inject ClientServices client
+@using IDC.Frontend.Services.ApiService
+@using IDC.Shared.Models
+@using Microsoft.EntityFrameworkCore
+<Form TItem="tbPhanMem" Record=@phanmem OnSubmit=@(args => Submit((tbPhanMem)args))>
+    <MoreForms>
+        <div class="row">
+            <FormField Text="Tên phần mềm" Size="12">
+                <RadzenTextBox @bind-Value=@phanmem.TenPhanMem />
+            </FormField>
+            <FormField Text="Viết tắt" Size="12">
+                <RadzenTextBox @bind-Value=@phanmem.VietTat Style="Width: 100%" />
+            </FormField>
+            <FormField Text="Đường dẫn URL" Size="12">
+                <RadzenTextBox @bind-Value=@phanmem.URL Style="Width: 100%" />
+            </FormField>
+            <FormField Text="Đường dẫn Api URL" Size="12">
+                <RadzenTextBox @bind-Value=@phanmem.ApiUrl Style="Width: 100%" />
+            </FormField>
+            <FormField Text="Đường dẫn file ảnh" Size="12">
+                <RadzenTextBox @bind-Value=@phanmem.ImgPath Style="Width: 100%" />
+            </FormField>
+        </div>
+    </MoreForms>
+</Form>
+
+@code {
+    [Parameter] public tbPhanMem phanmem { get; set; }
+    bool isLoading = false;
+    protected override async Task OnInitializedAsync()
+    {
+        if (phanmem == null) phanmem = new tbPhanMem();
+    }
+    protected async Task Submit(tbPhanMem phanMem)
+    {
+        if (phanMem.IdPhanMem == 0)
+        {
+            //Thêm mới một bản ghi
+            //1. Chuẩn bị dữ liệu
+            phanMem.IdPhanMem = await client.numServices.GetInt<tbPhanMem>();
+
+            //2. Thêm dữ liệu vào bảng
+            await apiService.Create<tbPhanMem>(phanMem);
+        }
+        else
+        {
+            //Cập nhật một bản ghi
+            //1. Chuẩn bị dữ liệu (nếu có)
+
+            //2. Thêm dữ liệu vào bảng
+            await apiService.Update<tbPhanMem>(phanMem);
+        }
+    }
+}

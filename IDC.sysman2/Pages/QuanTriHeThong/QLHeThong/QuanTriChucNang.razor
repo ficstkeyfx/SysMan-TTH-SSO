@@ -1,0 +1,339 @@
+@page "/quan-ly-he-thong"
+@using IDC.Frontend.Services
+@using IDC.Shared.Models
+@using SysMan.Models
+@inject DialogService dialog
+@inject NotificationService notificationService
+@inject ClientServices client
+@attribute [Authorize]
+
+<AuthorizeView>
+    <Authorized>
+        @*  @if (context.User.Identity?.Name != null && !(context.User.Identity?.Name?.Split(" ")[3].Contains("quan-ly-he-thong") ??
+        false))
+        {
+        <RedirectToHome />
+        } *@
+        <style>
+            .thao-tac-chuc-nang {
+                display: none;
+            }
+
+            .chuc-nang {
+                min-height: 30px;
+            }
+
+                .chuc-nang:hover .thao-tac-chuc-nang {
+                    display: block;
+                }
+
+            .rz-treenode-content .rz-treenode-label {
+                width: 100%;
+            }
+
+            .chuc-nang.drag-target {
+                outline: 2px dashed #1a73e8;
+                background: #e8f3ff;
+            }
+        </style>
+    </Authorized>
+</AuthorizeView>
+
+
+<div class="container-fluid">
+    <!-- WRAPPER CANH THEO RADZENCARD -->
+    <div class="row">
+        <div class="col-12 col-md-12 col-lg-8" style="padding: 0 6px;">
+
+            <!-- DROPDOWN -->
+            <div class="table-wrapper bold-placeholder">
+                <!-- DROPDOWN -->
+                <div style="margin-top:10px; margin-bottom:15px">
+                    <RadzenDropDown Data="@lstPhanMem"
+                                    TextProperty="TenPhanMem"
+                                    ValueProperty="IdPhanMem"
+                                    @bind-Value="idPhanMem"
+                                    Placeholder="-- Chọn phần mềm --"
+                                    Style="width:100%"
+                                    AllowClear="true"
+                                    Change="OnPhanMemChanged" />
+                </div>
+            </div>
+
+            <!-- BUTTON + TITLE -->
+            <div style="display:flex; align-items:center; margin-bottom:10px">
+
+                <!-- NÚT THÊM MỚI -->
+                <RadzenButton Text="Thêm mới"
+                              Click="args => Add()"
+                              Style="margin-right:15px" />
+
+                <!-- TIÊU ĐỀ -->
+                <div style="flex:1; text-align:center">
+                    <span style="
+                        color: blue;
+                        font-family: 'Source Sans 3', sans-serif;
+                        font-weight: 700;
+                        font-size: 25px;">
+                        DANH SÁCH CHỨC NĂNG
+                    </span>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <!-- FORM CHÍNH -->
+    <div class="row">
+        <div class="col-12 col-md-12 col-lg-8" style="padding: 0px">
+            <RadzenCard Style="padding: 20px 6px;">
+               <RadzenTree Style="height:350px;width:100%;margin-top:10px">
+                    @renderFeature(null, "")
+                </RadzenTree>
+            </RadzenCard>
+        </div>
+        <div class="col-12 col-md-12 col-lg-4">
+            @if (TuyChinhChucNang == true)
+            {
+                <ChucNang_Detail idPhanMem="@idPhanMem" Record="@ChucNangThaoTac" ReturnChucNang="@(async arg => {
+                                                                                  TuyChinhChucNang = false;
+                                                                                  if (arg != null)
+                                                                                  {
+                                                                                        // Lọc lấy danh sách các chức năng của phần mềm được chọn
+                                                                                        // từ dropdown
+
+                                                                                        listFeature.Clear();
+                                                                                        string filter = $"IdPhanMem=={idPhanMem}";
+                                                                                        listFeature=await client.apiSevices.GetAll<tbChucNang>(filter);
+                                                                                  }
+                                                                              })" />
+            }
+        </div>
+    </div>
+</div>
+
+
+
+@code {
+
+    List<tbChucNang> listFeature = new List<tbChucNang>();
+    tbChucNang ChucNangThaoTac = new tbChucNang();
+    bool TuyChinhChucNang = false;
+
+    List<tbPhanMem> lstPhanMem = new List<tbPhanMem>();
+    int idPhanMem;
+
+    // hàm xử lý Drag
+    tbChucNang? DragItem;
+    tbChucNang? DragTarget;
+
+    // hàm drag
+    void DragStart(DragEventArgs e, tbChucNang item)
+    {
+        DragItem = item;
+    }
+
+    void DragEnd(DragEventArgs e)
+    {
+        DragItem = null;
+        DragTarget = null;
+    }
+    // Drag over
+    void OnDragOver(DragEventArgs e, tbChucNang target)
+    {
+        if (DragItem == null) return;
+        if (DragItem.IdChucNang == target.IdChucNang) return;
+
+        DragTarget = target;
+    }
+
+    // Drop
+    async Task OnDrop(DragEventArgs e, tbChucNang target)
+    {
+        if (DragItem == null) return;
+
+        if (DragItem.IdChucNang == target.IdChucNang)
+            return;
+
+        int tmp = (int)DragItem.STT;
+        DragItem.STT = target.STT;
+        target.STT = tmp;
+
+        await client.apiSevices.Update<tbChucNang>(DragItem);
+        await client.apiSevices.Update<tbChucNang>(target);
+
+        listFeature.Clear();
+        string filter = $"IdPhanMem=={idPhanMem}";
+        listFeature = await client.apiSevices.GetAll<tbChucNang>(filter);
+
+        DragItem = null;
+        DragTarget = null;
+
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Phương thức thêm một chức năng cùng cấp
+    /// </summary>
+    /// <param name="ChucNangChon"></param>
+    void ThemChucNangCungCap(tbChucNang ChucNangChon)
+    {
+        ChucNangThaoTac = new tbChucNang();
+        ChucNangThaoTac.ChucNangCha = ChucNangChon.ChucNangCha;
+        TuyChinhChucNang = true;
+    }
+
+    /// <summary>
+    /// Phương thức thêm một chức năng con của một chức năng
+    /// </summary>
+    /// <param name="ChucNangChon"></param>
+    void ThemChucNangCon(tbChucNang ChucNangChon)
+    {
+        ChucNangThaoTac = new tbChucNang();
+        ChucNangThaoTac.ChucNangCha = ChucNangChon.IdChucNang;
+        TuyChinhChucNang = true;
+    }
+
+    void ChinhSuaChucNang(tbChucNang ChucNangChon)
+    {
+        ChucNangThaoTac = ChucNangChon;
+        TuyChinhChucNang = true;
+    }
+
+    async void DeleteDown(tbChucNang ChucNangChon)
+    {
+        //Chọn các chức năng con của chức năng được chọn
+        string lamda = $"ChucNangCha=={ChucNangChon.IdChucNang}";
+        List<tbChucNang> listChucNangCon = await client.apiSevices.GetAll<tbChucNang>(lamda);
+
+        //Xóa các chức năng con theo đệ quy
+        listChucNangCon.ForEach(item =>
+        {
+    DeleteDown(item);
+        });
+
+        //Xóa chức năng được chọn
+        lamda = $"IdChucNang=={ChucNangChon.IdChucNang} ";
+        client.apiSevices.Delete<tbChucNang>(lamda);
+
+        //Chọn lại danh sách chức năng sau khi khóa và hiển thị lại
+        listFeature.Clear();
+        string filter = $"IdPhanMem=={idPhanMem}";
+        listFeature = await client.apiSevices.GetAll<tbChucNang>(filter);
+        renderFeature(null, "");
+        StateHasChanged();
+    }
+
+    async void XoaChucNang(tbChucNang ChucNangChon)
+    {
+        var confirmResult = await dialog.Confirm
+    (
+    "Chắc chắn muốn xóa?",
+    "Xác nhận xoá",
+    new ConfirmOptions()
+            {
+                OkButtonText = "Đồng ý",
+                CancelButtonText = "Hủy",
+            }
+    );
+        if (confirmResult.HasValue && confirmResult.Value)
+        {
+            DeleteDown(ChucNangChon);
+        }
+    }
+
+    async void DoiCho(tbChucNang src, tbChucNang des)
+    {
+        int tmp = (int)src.STT;
+        src.STT = des.STT;
+        des.STT = tmp;
+        client.apiSevices.Update<tbChucNang>(src);
+        client.apiSevices.Update<tbChucNang>(des);
+
+        listFeature.Clear();
+        string filter = $"IdPhanMem=={idPhanMem}";
+        listFeature = await client.apiSevices.GetAll<tbChucNang>();
+    }
+
+    RenderFragment renderFeature(int? Parent, string STT)
+    {
+        List<tbChucNang> list = listFeature.Where(item => item.ChucNangCha == Parent).OrderBy(item => item.STT).ToList();
+        return
+    @<div>
+        @for (int i = 0; i < list.Count; i++)
+    {
+    tbChucNang tmp = list[i];
+    int Index = listFeature.IndexOf(tmp);
+    List<string> arr = STT.Split(".").ToList();
+    if (arr[arr.Count - 1] == "")
+    {
+    arr[arr.Count - 1] = (1 + i).ToString();
+    }
+    else
+    {
+    arr.Add((1 + i).ToString());
+    }
+
+        <RadzenTreeItem Value="@tmp">
+            <Template>
+                <div class="container-fluid chuc-nang"
+                     draggable="true"
+                     @ondragstart="(e => DragStart(e,tmp))"
+                     @ondragend="DragEnd"
+                     @ondragover="(e => OnDragOver(e,tmp))"
+                     @ondragover:preventDefault="true"
+                     @ondrop="(e => OnDrop(e,tmp))"
+                     @ondrop:preventDefault="true">
+                    <div class="row">
+                        <div class="col-7" style="padding: 0px">
+                            @(String.Join(".",arr) + ". " + tmp.TenChucNang)
+                        </div>
+                        <div class="col-5 thao-tac-chuc-nang" style="padding: 0px">
+                            <RadzenButton Icon="edit" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Warning"
+                                          Click="args => ChinhSuaChucNang(tmp)" />
+                            <RadzenButton Icon="delete" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Danger"
+                                          Click="args => XoaChucNang(tmp)" />
+                            <RadzenButton Size="ButtonSize.Small" Icon="format_list_bulleted_add"
+                                          Click="args => ThemChucNangCungCap(tmp)"></RadzenButton>
+                            <RadzenButton Size="ButtonSize.Small" Icon="forms_add_on" Click="args => ThemChucNangCon(tmp)">
+                            </RadzenButton>
+                            <RadzenButton Icon="arrow_drop_down" Size="ButtonSize.Small"
+                                          Disabled="list.IndexOf(tmp)==list.Count - 1"
+                                          Click="args =>  DoiCho(tmp, list[list.IndexOf(tmp) + 1])" />
+                            <RadzenButton Icon="arrow_drop_up" Size="ButtonSize.Small" Disabled="list.IndexOf(tmp)==0"
+                                          Click="args => DoiCho(list[list.IndexOf(tmp) - 1], tmp)" />
+                        </div>
+                    </div>
+                </div>
+            </Template>
+            <ChildContent>
+                @renderFeature(tmp.IdChucNang,  String.Join(".", arr))
+            </ChildContent>
+        </RadzenTreeItem>
+    }
+    </div>
+    ;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Lọc phần mềm
+        string filter = $"VietTat!=null";
+        lstPhanMem = await client.apiSevices.GetAll<tbPhanMem>(filter);
+    }
+    void Add()
+    {
+        StateHasChanged();
+    }
+
+    async Task OnPhanMemChanged()
+    {
+        // Lọc lấy danh sách các chức năng của phần mềm được chọn
+        // từ dropdown
+
+        listFeature.Clear();
+        string filter = $"IdPhanMem=={idPhanMem}";
+        listFeature = await client.apiSevices.GetAll<tbChucNang>(filter);
+    }
+}

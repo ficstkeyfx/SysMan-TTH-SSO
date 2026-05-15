@@ -1,0 +1,21 @@
+version: "3.5"
+services:
+  minio:
+    container_name: minio
+    restart: unless-stopped
+    image: minio/minio
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: Abc12345
+    volumes:
+      - ./minio:/data
+    ports:
+      - 9000:9000
+      - 9001:9001
+    command: server /data --console-address ":9001"
+  gotenberg:
+    container_name: gotenberg
+    restart: unless-stopped
+    image: gotenberg/gotenberg:8
+    ports:
+      - 3000:3000

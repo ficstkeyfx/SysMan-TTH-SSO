@@ -1,0 +1,13 @@
+@page "/logout"
+
+@inject AuthenticationStateProvider authStateProvider
+@inject NavigationManager UriHelper
+@attribute [Authorize]
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        var customAuthStateProvider = (CustomAuthenticationStateProvider)authStateProvider;
+        await customAuthStateProvider.UpdateAuthenticationState(null);
+        UriHelper.NavigateTo("/", true);
+    }
+}

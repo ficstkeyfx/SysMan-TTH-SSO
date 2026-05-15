@@ -1,0 +1,19 @@
+@page "/home"
+@inject NavigationManager UriHelper
+
+<AuthorizeView>
+    <Authorized>
+
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> authenticationState { get; set; } = default!;
+
+
+    protected void navigateMenu(string Path)
+    {
+
+        UriHelper.NavigateTo(Path);
+    }
+}

@@ -1,0 +1,13 @@
+@typeparam TItem
+
+@Content(record)
+
+@code {
+    [Parameter] public RenderFragment<TItem> Content { set; get; } = default!;
+    [Parameter] public TItem record { set; get; } = default!;
+
+    public class RecordForm
+    {
+        public TItem record { set; get; } = default!;
+    }
+}

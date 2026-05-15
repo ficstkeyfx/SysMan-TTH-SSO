@@ -1,0 +1,192 @@
+﻿@page "/bo-sung-nguoi-dung-phan-mem"
+@using IDC.BlazorUi.Components.Components
+@using IDC.Frontend.Services
+@using IDC.Shared.Models
+@using SysMan.Components
+@using SysMan.Models;
+@inject NotificationService notificationService
+@inject NavigationManager UriHelper
+@inject ClientServices client
+@inject DialogService dialog
+
+<style>
+    .search-container {
+        border: 1px solid #ddd;
+        padding: 20px;
+        border-radius: 6px;
+        background-color: #f9f9f9;
+        width: 100%; /* Đảm bảo chiều rộng bằng bảng */
+    }
+
+        .search-container .row {
+            margin-bottom: 15px;
+        }
+
+    .search-button-group {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-top: 10px;
+    }
+</style>
+
+
+<TableAPI @ref=grd TItem="tbPhanMem" 
+            TableTitle=@tableTitle
+            MoreFunction=false 
+            EditFunction=false 
+            DeleteFunction=false 
+            filter=@lamda 
+            AddNew=false isSearch=true 
+            ShowClose=false
+            OperationsSTTWidth="47px" 
+            OperationColumnWidth="80px" 
+            Title="Phân quyền">
+    <AddMore>
+        <div class="search-container">
+
+            <!-- Hàng 1: ô tìm kiếm -->
+            <div class="row">
+                <div class="col-md-12">
+                    <RadzenTextBox @bind-Value="@searchTenPhanMem"
+                                   @onkeydown="SearchInputKeyPressed"
+                                   Placeholder="Nhập tên phần mềm..."
+                                   Style="width: 100%;" />
+                </div>
+            </div>
+
+            <!-- Hàng nút -->
+            <div class="search-button-group d-flex justify-content-end align-items-center gap-2"
+                 style="margin-top: 15px;">
+
+                <RadzenButton Icon="search"
+                              ButtonStyle="ButtonStyle.Secondary"
+                              Click="@SearchVoid"
+                              Text="TÌM KIẾM"
+                              Style="min-width: 130px; font-size: 16px;" />
+
+                <RadzenButton Icon="close"
+                              ButtonStyle="ButtonStyle.Success"
+                              Click="@ResetVoid"
+                              Text="LÀM MỚI"
+                              Style="min-width: 130px; font-size: 16px;" />
+            </div>
+        </div>
+        <div class="rows" style="margin-bottom:5px" />
+    </AddMore>
+    <MoreColumns>
+        <RadzenDataGridColumn TItem="tbPhanMem" Title="Tên phần mềm" TextAlign="TextAlign.Left" Sortable="false"
+                              Width="350px" Property="TenTaiLieu" Frozen="true">
+            <Template Context="ctx">
+                <WrapWord Data=@ctx.TenPhanMem />
+            </Template>
+        </RadzenDataGridColumn>
+    </MoreColumns>
+    <MoreButtonFunction>
+        <RadzenButton Icon="manage_accounts" ButtonStyle="ButtonStyle.Success"
+                      Click="@(args => PhanQuyenPM(context))" />
+    </MoreButtonFunction>
+</TableAPI>
+
+@code {
+    TableAPI<tbPhanMem> grd;
+    string query = default!;
+    //static string? TenPN = "Phần mềm quản lý NCKH";
+    //string? lamda = $"p => (p.VietTat!=null) β \"{TenPN}\".Contains(p.TenPhanMem)";
+    //string? lamda = $"(VietTat!=null) β \"{TenPN}\".Contains(TenPhanMem)";
+    string? lamda = $"(VietTat!=null)";
+
+    string tableTitle = "DANH SÁCH CÁC PHẦN MỀM";
+    string formTitle = "THÔNG TIN PHẦN MỀM";
+
+    // Biến cho các trường tìm kiếm
+    string searchTenPhanMem = "";
+    private int? ID;
+
+    protected async Task PhanQuyenPM(tbPhanMem record)
+    {
+        if (record == null)
+        {
+            notificationService.Notify(NotificationSeverity.Error, "Lỗi", "Không có hồ sơ nào được chọn để phân quyền.", 5000);
+            return;
+        }
+
+        try
+        {
+            var parameters = new Dictionary<string, object?>
+            {
+                { "phanmem", record } // Truyền toàn bộ đối tượng hồ sơ
+            };
+
+            // Tiêu đề này là cho thanh title của dialog service, có thể để trống
+            // Tiêu đề chính sẽ nằm trong PhanQuyenHoSo_Detail.razor
+            string dialogServiceTitle = "";
+
+            var result = await dialog.OpenAsync<PhanQuyenPhanMem_Detail>(
+                dialogServiceTitle,
+                parameters,
+                new DialogOptions()
+                    {
+                        Width = "85vw",
+                        Height = "auto", // Hoặc "auto" nếu nội dung có thể thay đổi chiều cao nhiều
+                        ShowClose = true,
+                    // Ẩn thanh tiêu đề mặc định của RadzenDialog
+                        CloseDialogOnEsc = true,
+                        Resizable = true,
+                        Draggable = true
+                    });
+
+            if (result is bool hasChanged && hasChanged) // Nếu PhanQuyenHoSo_Detail trả về true (có thay đổi)
+            {
+                notificationService.Notify(NotificationSeverity.Success, "Thông báo", "Phân quyền đã được cập nhật.");
+                if (grd != null)
+                {
+                    await grd.Refresh(); // Làm mới lại bảng để thấy thay đổi (nếu cần)
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            notificationService.Notify(NotificationSeverity.Error, "Lỗi", $"Không thể mở form phân quyền hồ sơ: {ex.Message}", 7000);
+        }
+    }
+
+    // Xử lý tìm kiếm từ các trường
+    protected async Task SearchVoid()
+    {
+        List<string> conditions = new List<string>();
+
+
+        if (!string.IsNullOrEmpty(searchTenPhanMem))
+            conditions.Add($"p.TenTaiLieu.Contains(\"{searchTenPhanMem}\")");
+
+
+        if (conditions.Any())
+        {
+            lamda = $"p => ({conditions})";
+            //currentLamda = $"p => {string.Join(joinOperator, conditions)}";
+        }
+
+        grd.filter = lamda;
+        await grd.Refresh();
+    }
+
+    // Xử lý reset
+    protected async Task ResetVoid()
+    {
+        searchTenPhanMem = "";
+        string permissionCondition = $"p.QuyenKhaiThac.Contains(\"|public|\") || p.QuyenKhaiThac.Contains(\"|{ID}|\")";
+        lamda = $"p => {permissionCondition}";
+        grd.filter = lamda;
+        grd.Refresh();
+    }
+
+    // Xử lý phím Enter để tìm kiếm
+    protected async Task SearchInputKeyPressed(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter" || args.Key == "NumpadEnter")
+        {
+            await SearchVoid();
+        }
+    }
+}

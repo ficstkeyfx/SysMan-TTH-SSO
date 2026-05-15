@@ -1,0 +1,9 @@
+<div class="@("col-md-" + Size)" style="margin-top: 1rem">
+    <RadzenText TextStyle="TextStyle.Body1" TextAlign="TextAlign.Left"><strong>@Label</strong> @Value
+    </RadzenText>
+    </div>
+    @code {
+    [Parameter] public string Size { set; get; } = "12";
+    [Parameter] public string Label { set; get; } = "";
+    [Parameter] public string Value { set; get; } = "";
+}

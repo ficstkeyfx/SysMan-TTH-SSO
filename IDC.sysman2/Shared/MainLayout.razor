@@ -1,0 +1,238 @@
+﻿@inherits LayoutComponentBase
+@using IDC.Frontend.Services
+@using IDC.Frontend.Services.TokenService
+@using IDC.Shared.Models
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@using Microsoft.AspNetCore.Http.Extensions
+@using Microsoft.AspNetCore.SignalR.Client
+@inject NavigationManager UriHelper
+@using SysMan
+@using SysMan.Components.Menu
+@using SysMan.Pages
+@inject ProtectedLocalStorage LocalStorage
+@inject ProtectedSessionStorage SessionStorage
+@inject ITokenService tokenService
+@inject ClientServices client
+@inject NavigationManager Navigation
+@attribute [Authorize]
+<RadzenDialog />
+<RadzenNotification />
+<RadzenContextMenu />
+<RadzenTooltip />
+
+<PageTitle>Quản lý người dùng</PageTitle>
+
+<LoadingIndicator IsLoading="@isLoading" />
+
+
+<AuthorizeView>
+    <NotAuthorized>
+        <RedirectToLogin />
+    </NotAuthorized>
+    <Authorized>
+        <div class="@($"sidebar {(isSidebarClosed ? "close" : "")}")">
+            <div class="logo-details">
+                <i><img src="logo.png" style="width: 35px" /></i>
+                <span class="logo_name">Quản trị hệ thống</span>
+            </div>
+            <ul class="nav-links">
+                @foreach (var data in listChucNang.Where(item => item.ChucNangCha == null).OrderBy(item => item.STT))
+                {
+                    List<tbChucNang> listChild = listChucNang.Where(item => item.ChucNangCha == data.IdChucNang).OrderBy(item=>item.STT).ToList();
+                    if (listChild.Count > 0)
+                    {
+                        <Menu _Path="@data.DuongDan" Name="@data.TenChucNang" Icon="@data.BieuTuong" isClose="@isSidebarClosed" Level="1">
+                            <SubMenus>
+                                @foreach (var child in listChild)
+                                {
+                                    List<tbChucNang> listGrandChild = listChucNang.Where(item => item.ChucNangCha == child.IdChucNang).OrderBy(item => item.STT).ToList();
+                                    if (listGrandChild.Count > 0)
+                                    {
+                                        <SubMenu Id="@child.IdChucNang" Focus="@dictFocus[child.IdChucNang]" 
+                                                 _Path="@child.DuongDan" Name="@child.TenChucNang" Icon="@child.BieuTuong"
+                                                 OnClickMenu="@(args => onClickMenu((int)args))" Level="2">
+                                            <ChildMenus>
+                                                @foreach (var grandChild in listGrandChild)
+                                                {
+                                                    List<tbChucNang> listGreatGrandChild = listChucNang.Where(item => item.ChucNangCha == grandChild.IdChucNang).OrderBy(item => item.STT).ToList();
+                                                    if (listGreatGrandChild.Count > 0)
+                                                    {
+                                                        <SubMenu Id="@grandChild.IdChucNang" Focus="@dictFocus[grandChild.IdChucNang]"
+                                                                _Path="@grandChild.DuongDan" Name="@grandChild.TenChucNang" Icon="@grandChild.BieuTuong"
+                                                                OnClickMenu="@(args => onClickMenu((int)args))" Level="3">
+                                                            <ChildMenus>
+                                                                @foreach (var greatGrandChild in listGreatGrandChild)
+                                                                {
+                                                                    <SubMenu Id="@greatGrandChild.IdChucNang" Focus="@dictFocus[greatGrandChild.IdChucNang]"
+                                                                            _Path="@greatGrandChild.DuongDan" Name="@greatGrandChild.TenChucNang" Icon="@greatGrandChild.BieuTuong"
+                                                                            OnClickMenu="@(args => onClickMenu((int)args))" Level="4" />
+                                                                }
+                                                            </ChildMenus>
+                                                        </SubMenu>
+                                                    }
+                                                    else
+                                                    {
+                                                        <SubMenu Id="@grandChild.IdChucNang" Focus="@dictFocus[grandChild.IdChucNang]"
+                                                                _Path="@grandChild.DuongDan" Name="@grandChild.TenChucNang" Icon="@grandChild.BieuTuong"
+                                                                OnClickMenu="@(args => onClickMenu((int)args))" Level="3" />
+                                                    }
+                                                }
+                                            </ChildMenus>
+                                        </SubMenu>
+                                    }
+                                    else
+                                    {
+                                        <SubMenu Id="@child.IdChucNang" Focus="@dictFocus[child.IdChucNang]"
+                                                 _Path="@child.DuongDan" Name="@child.TenChucNang" Icon="@child.BieuTuong"
+                                                 OnClickMenu="@(args => onClickMenu((int)args))" Level="2" />
+                                    }
+                                }
+                            </SubMenus>
+                        </Menu>
+                    }
+                    else
+                    {
+                        <Menu _Path="@data.DuongDan" Name="@data.TenChucNang" Icon="@data.BieuTuong" isClose="@isSidebarClosed" Level="1" />
+                    }
+                }
+            </ul>
+        </div>
+
+        <section class="home-section">
+            <div class="home-content justify-content-between">
+                <div style="margin-top:0.3rem">
+                    <i class='bx bx-menu' style="color: white" @onclick="@ToggleSidebar"></i>
+                </div>
+                <div>
+                    <RadzenProfileMenu Style="background: none">
+                        <Template>
+                            <RadzenImage Path="logo.png" Style="width: 35px; height: 35px; margin-right: 0.2rem" />
+                           @*  <span style="color: white">@(CanBo.HoTen ?? "Người dùng hệ thống")
+                            </span> *@
+                        </Template>
+                        <ChildContent>
+                            <RadzenProfileMenuItem Path="logout" Text="Đăng xuất" Icon="logout" />
+                            <RadzenProfileMenuItem Path="thong-tin-ca-nhan" Text="Thông tin cá nhân" Icon="account_circle" />
+                        </ChildContent>
+                    </RadzenProfileMenu>
+                </div>
+            </div>
+            <div style="margin-left: 1.5rem">
+                @Body
+            </div>
+        </section>
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> authenticationState { get; set; } = default!;
+
+    private bool isSidebarClosed = false;
+    private bool isClose = false;
+    private string menuMode = "";
+    private List<tbChucNang> listChucNang = new List<tbChucNang>();
+    private Dictionary<int, bool> dictFocus = new Dictionary<int, bool>();
+    tbSoftwareUser user = new tbSoftwareUser();
+    string query = default!;
+    List<int?> lstFeatureOfUser = new List<int?>();
+    [Parameter] public string UriConnection { get; set; } = "";
+    [Parameter] public int receiverConnection { get; set; } = 0;
+    [Parameter] public int senderConnection { get; set; } = 0;
+    private HubConnection hubConnection = default!;
+
+    // Biến điều khiển trạng thái Loading trang
+    bool isLoading = false;
+
+    protected void ToggleSidebar()
+    {
+        // Toggle trạng thái sidebar đóng/mở
+        isSidebarClosed = !isSidebarClosed;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        // Mở trạng thái Loading
+        isLoading = true;
+
+        try
+        {
+
+            // Lấy tên đăng nhập hệ thống
+            string? username = await client.authServices.GetUserName();
+
+            if (string.IsNullOrEmpty(username)) return;
+
+            //Lọc các chức năng của phần mềm Quản trị hệ thống
+            string filter = $"IdPhanMem=={(int)PhanMem.SysMan}";
+            if (username == "systemadmin")
+            {
+                
+                listChucNang = await client.apiSevices.GetAll<tbChucNang>(filter);
+            }
+            else
+            {
+                listChucNang = await client.tvfServices.getChucNang<tbChucNang>((int)user.IdUser);
+            }
+
+
+            for (int i = 0; i < listChucNang.Count(); i++)
+            {
+                dictFocus.Add(listChucNang[i].IdChucNang, false);
+            }
+        }
+        catch (Exception e)
+        {
+
+        }
+
+        hubConnection = new HubConnectionBuilder().WithUrl(UriHelper.ToAbsoluteUri("/chat")).Build();
+        hubConnection.On<int>("ReceiveMessage", async (receiver) =>
+        {
+            if (receiver == senderConnection)
+            {
+                int i = 0;
+            }
+        });
+        await hubConnection.StartAsync();
+
+
+        // Đóng trạng thái Loading
+        isLoading = false;
+    }
+        
+        
+
+    protected void onClickMenu(int id)
+    {
+        // Reset tất cả các menu focus
+        for (int i = 0; i < listChucNang.Count(); i++)
+        {
+            dictFocus[listChucNang[i].IdChucNang] = false;
+        }
+        dictFocus[id] = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && tokenService.Token == null)
+        {
+            // Ưu tiên localStorage
+            var tokenObj = await LocalStorage.GetAsync<string>("token");
+            string? token = tokenObj.Success ? tokenObj.Value : null;
+
+            if (string.IsNullOrEmpty(token))
+            {
+                // fallback sessionStorage
+                var sessionObj = await SessionStorage.GetAsync<string>("token");
+                token = sessionObj.Success ? sessionObj.Value : null;
+            }
+
+            if (!string.IsNullOrEmpty(token))
+            {
+                tokenService.Token = token;
+                StateHasChanged(); // nếu cần reload UI
+            }
+        }
+    }
+}

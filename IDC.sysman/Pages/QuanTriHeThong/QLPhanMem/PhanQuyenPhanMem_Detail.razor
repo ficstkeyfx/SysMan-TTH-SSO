@@ -1,0 +1,233 @@
+﻿@* PhanQuyenTaiLieu_Detail.razor *@
+@using IDC.Frontend.Services
+@using IDC.Shared.Models
+@using SysMan.Models;
+@inject ClientServices client
+@inject NotificationService notificationService
+@inject DialogService? DialogService
+
+<LoadingIndicator IsLoading="@isLoading" />
+<LoadingIndicator IsSaving="@isSaving" />
+
+<div style="padding-left: 1rem; padding-right: 1rem; padding-bottom: 1rem;">
+    @* TIÊU ĐỀ ĐÃ ĐƯỢC TẠO KIỂU Ở ĐÂY *@
+    <div class="row mb-3">
+        <div class="col-12 text-center">
+            <RadzenLabel Style="color: rgb(10, 10, 178); font-family: 'Source Sans 3', sans-serif; font-weight: bold; font-size: 25px;margin-top:-40px"
+                         Text="PHÂN QUYỀN SỬ DỤNG PHẦN MỀM" />
+        </div>
+    </div>
+    <div class="container-fluid">
+        <div class="row align-items-center">
+            <div class="col-md-12">
+                <h5>Phân quyền sử dụng phần mềm: <strong>@phanmem.TenPhanMem</strong></h5>
+            </div>
+        </div>
+
+        @* RadzenPickList và các thành phần liên quan SẼ LUÔN RENDER KHUNG *@
+        <div class="row">
+            <div class="col-12">
+
+                @* PickList được render bên dưới, trạng thái Disabled và EmptyText sẽ xử lý các trường hợp khác *@
+                @* Chỉ không render PickList nếu đang tải người dùng (để tránh chồng chéo với loading bar ở trên) *@
+                <RadzenPickList TItem="vNguoiDungPhanMem"
+                                @bind-Source="SystemUsers"
+                                @bind-Target="LocalSoftwareUsers"
+                                TextProperty="@nameof(vNguoiDungPhanMem.FullName)"
+                                AllowFiltering="true"
+                                Style="height:400px; width:100%;"
+                                AllowSelectAll="@allowSelectAll"
+                                Multiple="@multiple"
+                                ShowHeader="@showHeader"
+                                AllowMoveAll="@allowMoveAll"
+                                Orientation="@orientation">
+                    <SourceHeader>
+                        Người dùng chưa có quyền (@(SystemUsers?.Count() ?? 0))
+                    </SourceHeader>
+                    <TargetHeader>
+                        Người dùng đã có quyền (@(LocalSoftwareUsers?.Count() ?? 0))
+                    </TargetHeader>
+                    <Template Context="user">
+                        <div>
+                            <strong>@user.FullName</strong> (@user.UserName)
+                        </div>
+                    </Template>
+
+                </RadzenPickList>
+            </div>
+        </div>
+
+        @* Nút Lưu *@
+        <div class="row mt-4">
+            <div class="col-12 d-flex justify-content-center">
+                <RadzenButton Text="Lưu dữ liệu" Icon="save" ButtonStyle="ButtonStyle.Primary" Click="@SaveChanges" Disabled="@isLoading" />
+                @if (DialogService != null)
+                {
+                    <RadzenButton Text="Đóng" Icon="close" ButtonStyle="ButtonStyle.Light" Click="@(() => DialogService.Close())" Class="ms-2" Disabled="@isLoading" />
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    //=========================================================
+    // PHẦN KHAI BÁO BIẾN CHO CÁC THUỘC TÍNH CỦA RADZENPICKLIST (GIỮ NGUYÊN)
+    //=========================================================
+    JustifyContent justifyContent = JustifyContent.Center;
+    Variant variant = Variant.Outlined;
+    ButtonStyle style = ButtonStyle.Primary;
+    Shade shade = Shade.Default;
+    ButtonSize size = ButtonSize.Medium;
+    Orientation orientation = Orientation.Horizontal;
+
+    string gap = "12px";
+    bool allowFilter = true;
+    bool multiple = true;
+    bool allowSelectAll = true;
+    bool showHeader = true;
+    bool allowMoveAll = true;
+    bool allowMoveSourceToTarget = true;
+    bool allowMoveTargetToSource = true;
+
+    //=======================================
+    // CÁC BIẾN VÀ LOGIC CHÍNH CỦA COMPONENT
+    //=======================================
+    [Parameter] public tbPhanMem? phanmem { get; set; } // THAY ĐỔI: Kiểu và tên Parameter
+
+    //Danh sách người dùng hệ thống
+    private List<vNguoiDungHeThong> allUsersSystem = new List<vNguoiDungHeThong>();
+    private List<vNguoiDungPhanMem> allUsersSoftware = new List<vNguoiDungPhanMem>();
+
+    private IEnumerable<vNguoiDungPhanMem> _systemUsers = Enumerable.Empty<vNguoiDungPhanMem>();
+    public IEnumerable<vNguoiDungPhanMem> SystemUsers { get => _systemUsers; set => _systemUsers = value; }
+
+    private IEnumerable<vNguoiDungPhanMem> _localSoftwareUsers = Enumerable.Empty<vNguoiDungPhanMem>();
+    public IEnumerable<vNguoiDungPhanMem> LocalSoftwareUsers { get => _localSoftwareUsers; set => _localSoftwareUsers = value; }
+
+    private bool isLoading = false;
+    private bool isSaving = false;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        isLoading = true;
+        _systemUsers = Enumerable.Empty<vNguoiDungPhanMem>();
+        _localSoftwareUsers = Enumerable.Empty<vNguoiDungPhanMem>();
+        allUsersSoftware = new List<vNguoiDungPhanMem>();
+
+        if (phanmem != null) // Sử dụng
+        {
+            await LoadAndPrepareUserPermissionsForPickList();
+        }
+
+        isLoading = false;
+    }
+
+    //Load dữ liệu cho Picklist
+    private async Task LoadAndPrepareUserPermissionsForPickList()
+    {
+        if (phanmem == null) return;
+
+        StateHasChanged();
+        try
+        {
+            string filter = $"IdPhanMem=={phanmem.IdPhanMem}";
+            allUsersSoftware = await client.apiSevices.GetAll<vNguoiDungPhanMem>(filter) ?? new List<vNguoiDungPhanMem>();
+
+            allUsersSystem = await client.apiSevices.GetAll<vNguoiDungHeThong>() ?? new List<vNguoiDungHeThong>();
+
+            //Lấy danh sách các UserId của các người dùng phần mềm được chọn
+            var tempUsersSoftware = new HashSet<int>();
+            foreach (var usr in allUsersSoftware)
+            {
+                tempUsersSoftware.Add(usr.IdUser);
+            }
+            // newTargetList: danh sách người dùng phần mềm
+            // newSourceList: danh sách người dùng hệ thống sau khi loại bỏ danh sách
+            // người dùng phần mềm
+            var newSourceList = new List<vNguoiDungPhanMem>();
+            var newTargetList = new List<vNguoiDungPhanMem>();
+            vNguoiDungPhanMem softUser = new vNguoiDungPhanMem();
+            if (allUsersSystem.Any())
+            {
+                foreach (var user in allUsersSystem)
+                {
+                    softUser = new vNguoiDungPhanMem(){
+                        IdUser=user.IdUser,FullName=user.FullName,
+                        IdPhanMem=user.IdPhanMem,UserName=user.UserName};
+
+                    if (tempUsersSoftware.Contains((int)user.IdUser))
+                    {
+                        newTargetList.Add(softUser);
+                    }
+                    else
+                    {
+                        newSourceList.Add(softUser);
+                    }
+                }
+            }
+
+            SystemUsers = newSourceList;
+            LocalSoftwareUsers = newTargetList;
+        }
+        catch (Exception ex)
+        {
+            notificationService.Notify(NotificationSeverity.Error, "Lỗi tải dữ liệu người dùng", ex.Message);
+            SystemUsers = Enumerable.Empty<vNguoiDungPhanMem>();
+            LocalSoftwareUsers = Enumerable.Empty<vNguoiDungPhanMem>();
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+    // Lưu dữ liệu
+    private async Task SaveChanges()
+    {
+        isSaving = true;
+        if (phanmem == null)
+        {
+            notificationService.Notify(NotificationSeverity.Error, "Lỗi", "Không có tài liệu để lưu phân quyền.");
+            return;
+        }
+
+        StateHasChanged();
+
+        try
+        {
+
+            // 1. Xoá người dùng phần mềm hiện tại
+            string delFilter = $"IdPhanMem=={phanmem.IdPhanMem}";
+            await client.apiSevices.Delete<tbSoftwareUser>(delFilter);
+
+            // 2. Cập nhật người dùng phần mềm mới
+            List<tbSoftwareUser> lstUser = new List<tbSoftwareUser>();
+            foreach (var u in LocalSoftwareUsers)
+            {
+                tbSoftwareUser user = new tbSoftwareUser();
+                user.IdSoftwareUser = await client.numServices.GetInt<tbSoftwareUser>();
+                user.IdPhanMem = phanmem.IdPhanMem;
+                user.IdUser = u.IdUser;
+                user.UserName = u.UserName;
+                user.FullName = u.FullName;
+                lstUser.Add(user);
+            }
+
+            await client.apiSevices.Create<tbSoftwareUser>(lstUser);
+
+            notificationService.Notify(NotificationSeverity.Success, "Thành công", "Đã lưu thay đổi phân quyền cho tài liệu.");
+
+            DialogService?.Close();
+        }
+        catch (Exception ex)
+        {
+            notificationService.Notify(NotificationSeverity.Error, "Lỗi lưu dữ liệu", ex.Message);
+        }
+        finally
+        {
+            isSaving = false;
+            StateHasChanged();
+        }
+    }
+}

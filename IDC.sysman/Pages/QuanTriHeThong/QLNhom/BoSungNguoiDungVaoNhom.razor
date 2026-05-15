@@ -1,0 +1,292 @@
+@page "/bo-sung-nguoi-dung-vao-nhom"
+@using IDC.Shared.Models
+@inject ClientServices client
+
+<style>
+    .bold-placeholder .rz-dropdown .rz-placeholder {
+        font-weight: 700;
+    }
+</style>
+
+<div class="table-wrapper bold-placeholder">
+    <!-- DROPDOWN -->
+    <div style="margin-top:10px; margin-bottom:15px">
+        <RadzenDropDown class="dropdown-bold-placeholder" Data="@lstPhanMem"
+                        TextProperty="TenPhanMem"
+                        ValueProperty="IdPhanMem"
+                        @bind-Value="idPhanMem"
+                        Placeholder="-- Chọn phần mềm --"
+                        Style="width:100%"
+                        AllowClear="true"
+                        Change="OnPhanMemChanged" />
+    </div>
+</div>
+<div class="row mb-3">
+    <div class="col-12 text-center">
+        <RadzenLabel Style="color: rgb(10, 10, 178); font-family: 'Source Sans 3', sans-serif; font-weight: bold; font-size: 25px; margin-bottom:-100px"
+                     Text="BỔ SUNG NGƯỜI DÙNG VÀO NHÓM" />
+    </div>
+</div>
+
+@* <Waiting Show="@isLoading" Message="Đang tải dữ liệu..." /> *@
+
+<LoadingIndicator IsLoading="@isLoading" IsSaving="@isSaving"></LoadingIndicator>
+
+<Form TItem="tbSoftwareUser" Record=@user OnSubmit=Submit>
+    <MoreForms>
+        <RadzenStack class="rz-p-0 rz-p-md-12">
+                <RadzenCard Style="margin-bottom:-60px">
+                <RadzenPickList AllowMoveAll="@allowMoveAll" AllowMoveAllSourceToTarget="@allowMoveSourceToTarget" AllowMoveAllTargetToSource="@allowMoveTargetToSource" 
+                                @bind-Source="@Source" @bind-Target="@Target" Style="height:350px; width:100%;" Orientation="@orientation"
+                                TextProperty="@nameof(UserDto.UserName)" AllowFiltering="@allowFilter" Multiple="@multiple" ShowHeader="@showHeader" Disabled="@disabled"
+                                ButtonGap="@gap" ButtonJustifyContent="@justifyContent" ButtonStyle="@style" ButtonSize="@size" ButtonShade="@shade" ButtonVariant="@variant"
+                                AllowSelectAll="@allowSelectAll" Change="OnPickListChanged">
+                    <SourceHeader>
+                        <RadzenLabel Text="Người dùng phần mềm:" Style="margin-bottom:10px" />
+                    </SourceHeader>
+                    <TargetHeader>
+                        <RadzenDropDown AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Data=@lstnhom
+                                        @bind-Value=@idNhom TextProperty="TenNhom" ValueProperty="IdNhom" Placeholder="Chọn nhóm người dùng"
+                                        Change="@onchange"/>
+
+                    </TargetHeader>
+                    <Template>
+                        @context.UserName (@context.FullName)
+                    </Template>
+                </RadzenPickList>
+            </RadzenCard>
+        </RadzenStack>
+    </MoreForms>
+</Form>
+
+@code {
+    tbSoftwareUser user = new tbSoftwareUser();
+    bool isLoading = false;
+    bool isSaving = false;
+    JustifyContent justifyContent = JustifyContent.Center;
+    Variant variant = Variant.Outlined;
+    ButtonStyle style = ButtonStyle.Primary;
+    Shade shade = Shade.Default;
+    ButtonSize size = ButtonSize.Medium;
+    Orientation orientation = Orientation.Horizontal;
+
+    string gap = "12px";
+    bool allowFilter = true;
+    bool multiple = true;
+    bool allowSelectAll = true;
+    bool showHeader = true;
+    bool disabled;
+    bool allowMoveAll = true;
+    bool allowMoveSourceToTarget = true;
+    bool allowMoveTargetToSource = true;
+
+    List<vNguoiDungPhanMem> vNguoiDungThuocNhoms = new List<vNguoiDungPhanMem>();
+    List<vNguoiDungPhanMem> vNguoiDungPhanMems = new List<vNguoiDungPhanMem>();
+    List<UserDto> lstNguoiDungThuocNhom = new List<UserDto>();
+
+    //Danh sách người dùng phần mềm với đầy đủ thông tin
+    List<tbNguoiDung_Nhom> lstNguoiDung_Nhom = new List<tbNguoiDung_Nhom>();
+
+    List<tbNhom> lstnhom = new List<tbNhom>();
+    int idNhom;
+
+    List<tbPhanMem> lstPhanMem = new List<tbPhanMem>();
+    int idPhanMem;
+    // Điều kiện lọc dữ liệu
+    string? filterNhom = $"IdPhanMem==null";
+
+
+    string? lamda=null;
+    IEnumerable<UserDto> _source=new List<UserDto>();
+    IEnumerable<UserDto> Source
+    {
+        get
+        {
+            return _source;
+        }
+        set
+        {
+            if (_source != value)
+            {
+                _source = value;
+            }
+        }
+    }
+
+    IEnumerable<UserDto> _target=new List<UserDto>();
+    IEnumerable<UserDto> Target
+    {
+        get
+        {
+            return _target;
+        }
+        set
+        {
+            if (_target != value)
+            {
+                _target = value;
+            }
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        //đạt trạng thái để hiển thị thông báo đang tài dữ liệu
+        isLoading = true;
+      
+        // Lọc phần mềm
+        string filter = $"VietTat!=null";
+        lstPhanMem = await client.apiSevices.GetAll<tbPhanMem>(filter);
+
+        //đặt trạng thái để tắt thông báo hiển thị dữ liệu
+        isLoading = false;
+    }
+
+    async Task OnPhanMemChanged()
+    {
+        // Lọc lấy danh sách các chức năng của phần mềm được chọn
+        // từ dropdown
+        filterNhom = $"IdPhanMem=={idPhanMem}";
+
+        //Lấy danh sách nhóm người dùng và người dùng phần mềm
+        lstnhom = await client.apiSevices.GetAll<tbNhom>(filterNhom);
+        lstNguoiDung_Nhom = await client.apiSevices.GetAll<tbNguoiDung_Nhom>(filterNhom);
+
+        //lấy danh sách người dùng phần mềm với số thông tin hạn chế
+        //dùng để làm nguồn dữ liệu cho picklist
+        vNguoiDungPhanMems = await client.apiSevices.GetAll<vNguoiDungPhanMem>(filterNhom);
+        var s = Source.ToList();
+        if (vNguoiDungPhanMems != null)
+            foreach (var it in vNguoiDungPhanMems)
+            {
+                UserDto userDto = new UserDto() { IdUser = it.IdUser, UserName = it.UserName, FullName = it.FullName };
+                s.Add(userDto);
+            }
+        Source = s;
+
+        StateHasChanged();
+    }
+    protected async Task onchange()
+    {
+        //Làm mới Tartget
+        var l=Target?.ToList();
+        l?.Clear();
+        Target = l;
+        lstNguoiDungThuocNhom.Clear();
+        lstNguoiDung_Nhom = await client.apiSevices.GetAll<tbNguoiDung_Nhom>();
+        //Lấy người dùng thuộc nhóm
+        var listNguoiDungThuocNhom = await client.tvfServices.getNguoiDungNhom<tbSoftwareUser>(idNhom,idPhanMem);
+        var t = Target?.ToList();
+
+        List<UserDto> s = new List<UserDto>();
+        foreach (var it in vNguoiDungPhanMems)
+        {
+            UserDto userDto = new UserDto() { IdUser = it.IdUser, UserName = it.UserName, FullName = it.FullName };
+            s.Add(userDto);
+        }
+
+        if (listNguoiDungThuocNhom != null)
+        {
+            if(t==null)
+                t = new List<UserDto>();
+
+            foreach (var it in listNguoiDungThuocNhom)
+            {
+                UserDto userDto = new UserDto() { IdUser = (int)it.IdUser, UserName = it.UserName, FullName = it.FullName };
+                t.Add(userDto);
+                s.Remove(s.Where(p => p.IdUser == it.IdUser).FirstOrDefault());
+                lstNguoiDungThuocNhom.Add(userDto);
+            }
+        }
+
+        Target = t;
+        Source = s;
+    }
+    protected async Task Submit(tbSoftwareUser user)
+    {
+        isSaving = true;
+        try
+        {
+            //Xác định số người dùng phần mềm bị xóa
+            List<UserDto> delUsers = new List<UserDto>();
+            if (Target != null)
+                delUsers = lstNguoiDungThuocNhom.Except(Target).ToList();
+            else
+                delUsers = lstNguoiDungThuocNhom;
+
+            //Xác định số người dùng phần mềm được thêm mới
+            List<UserDto> addUsers = new List<UserDto>();
+            if (lstNguoiDungThuocNhom != null)
+                addUsers = Target?.Except(lstNguoiDungThuocNhom).ToList();
+            else
+                addUsers = Target.ToList();
+
+            List<tbNguoiDung_Nhom> lstUsr_Group = new List<tbNguoiDung_Nhom>();
+            if (delUsers?.Count() > 0)
+                foreach(var it in delUsers)
+                {
+                    //Xóa nhóm người dùng
+                    var us = lstNguoiDung_Nhom.Where(p => p.IdNguoiDung == it.IdUser && p.IdNhom==idNhom).FirstOrDefault();
+                    if (us != null)
+                    {
+                        lstUsr_Group.Add(us);
+                    }
+                }
+
+            //Xóa người dùng thuộc nhóm tương ứng với update IdNhom=null
+            if (lstUsr_Group?.Count > 0)
+            {
+                await client.apiSevices.Delete<tbNguoiDung_Nhom>(lstUsr_Group);
+            }
+
+
+            //Cập nhật người dùng mới
+            lstUsr_Group = new List<tbNguoiDung_Nhom>();
+            if (addUsers?.Count()>0)
+                foreach (var it in addUsers)
+                {
+                    tbNguoiDung_Nhom o = new tbNguoiDung_Nhom();
+                    o.IdNguoiDung_Nhom = await client.numServices.GetInt<tbNguoiDung_Nhom>();
+                    o.IdNguoiDung = it.IdUser;
+                    o.IdNhom = idNhom;
+                    lstUsr_Group.Add(o);
+                }
+
+            //Bổ sung người dùng thuộc nhóm tương ứng với đặt IdNhom người dùng khác null
+            if (lstUsr_Group?.Count > 0)
+            {
+                await client.apiSevices.Create<tbNguoiDung_Nhom>(lstUsr_Group);
+            }
+
+            //Làm mới lại danh sách người dùng khi đã cập nhật thông tin phục vụ
+            //cho các thao tác lần sau
+
+
+            //lấy danh sách người dùng phần mềm với số thông tin hạn chế
+            //dùng để làm nguồn dữ liệu cho picklist
+            vNguoiDungPhanMems = await client.apiSevices.GetAll<vNguoiDungPhanMem>();
+            List<UserDto> s = new List<UserDto>();
+
+            foreach (var it in vNguoiDungPhanMems)
+            {
+                UserDto userDto = new UserDto() { IdUser = it.IdUser, UserName = it.UserName, FullName = it.FullName };
+                s.Add(userDto);
+            }
+            if(Target!=null)
+            {
+                foreach (var it in Target)
+                {
+                    s.Remove(s.Where(p => p.IdUser == it.IdUser).FirstOrDefault());
+                }
+            }
+
+            Source = s;
+
+        }
+        catch
+        {
+            //notificationService.Notify(NotificationSeverity.Error, $"Thông báo:", "Thay đổi không thành công", duration: 1500);
+        }
+        isSaving = false;
+    }
+}

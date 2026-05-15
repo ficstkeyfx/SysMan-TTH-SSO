@@ -1,0 +1,179 @@
+@inject IJSRuntime JSRuntime
+@inject DialogService dialog
+@inject ContextMenuService ContextMenuService
+@inject LinkService linkService
+
+<style>
+    .hover-link {
+    text-decoration: none;
+    outline: none !important;
+    }
+
+    .hover-link:hover {
+    text-decoration: underline !important;
+    outline: none;
+    -webkit-box-shadow: none !important;
+    box-shadow: none !important;
+    }
+
+    .hover-link::after {
+    background-repeat: no-repeat !important;
+    border: none !important;
+    }
+
+    .rz-button {
+    border: none !important;
+    }
+
+    .hover-link:end {
+    background-repeat: no-repeat !important;
+    border: none !important;
+    outline: none !important;
+    }
+
+    .hover-link:active {
+    background-repeat: no-repeat !important;
+    border: none !important;
+    outline: none !important;
+    background-color: White !important;
+    background-image: none !important;
+    }
+
+    .hover-link:focus-within {
+    -webkit-box-shadow: none !important;
+    box-shadow: none !important;
+    }
+
+    .hover-link:focus {
+    -webkit-box-shadow: none !important;
+    box-shadow: none !important;
+    }
+
+    .rz-dialog-title {
+    display: none;
+    }
+</style>
+
+<RadzenButton class="hover-link" 
+style=" background-color: transparent;background-repeat:no-repeat;border: none;
+                    cursor: pointer; padding: 0.5%; margin-right: 10px;color:blue;"
+ContextMenu=@(args => ShowContextMenu(args)) Click="@(arg => ViewFile())">
+    <span class="hover-link">@file.fileName</span>
+    <div style="display: flex; justify-content: center; align-items: center;">
+        <Waiting Message="Xin đợi.." LoadingProgress="@loadingProgress" ShowStatusWait="@showStatusWait"/>
+    </div>
+</RadzenButton>
+
+
+
+@code {
+    [Parameter] public FileUpload file { get; set; } = new FileUpload();
+    [Parameter] public int Id { get; set; }
+    [Parameter] public EventCallback<int> OnDeleteFile { get; set; }
+    bool showStatusWait = true;
+    int loadingProgress;
+    string moreInfo;
+    void ShowContextMenu(MouseEventArgs args) => ContextMenuService.Open(args, ds =>
+    @<RadzenMenu Click="arg => OnMenuItemClick(arg)">
+        <RadzenMenuItem Text="Xem tài liệu" Value="1" Icon="visibility"></RadzenMenuItem>
+
+        <RadzenMenuItem Text="Tải tài liệu" Value="2" Icon="cloud_download"></RadzenMenuItem>
+
+        <RadzenMenuItem Text="Xoá tài liệu" Value="3" Icon="delete"></RadzenMenuItem>
+    </RadzenMenu>
+    );
+
+    async Task OnMenuItemClick(MenuItemEventArgs args)
+    {
+        ///////////////////////////////////////////////////////////////////////////////
+        //Chưa tìm được cách để track theo progress của hàm nên để loadingProgress tạm.
+        ///////////////////////////////////////////////////////////////////////////////
+        showStatusWait = true;
+        loadingProgress = 33;
+        StateHasChanged();
+        await Task.Delay(1);
+
+        bool updateState = true;
+
+        //View một file
+        if (args.Value.Equals(1))
+        {
+            
+            try
+            {
+                string token = linkService.GenerateOneTimeLink($"{file.hash}{Path.GetExtension(file.fileName)}",file.bucketName);
+                await JSRuntime.InvokeVoidAsync("eval", $"let _discard_ = open(`{token}`, `_blank`)");
+            }
+            catch
+            {
+                updateState = false;
+            }
+        }
+
+        //Download một file
+        else if (args.Value.Equals(2))
+        {
+            try
+            {
+                updateState = false;
+                loadingProgress = 0;
+                showStatusWait = false;
+                StateHasChanged();
+                await Task.Delay(1);
+                await JSRuntime.InvokeAsync<object>("open",
+                $"/get-presigned-url?bucketName={file.bucketName}&objectName={file.hash}{Path.GetExtension(file.fileName)}",
+                "_blank");
+
+            }
+            catch 
+            { 
+                updateState = false;
+            }
+        }
+        //Xóa một file
+        else if (args.Value.Equals(3))
+        {
+            await OnDeleteFile.InvokeAsync(Id);
+        }
+
+        if (updateState) 
+        { 
+            showStatusWait = false; 
+            loadingProgress = 0; 
+            StateHasChanged();
+        }
+
+        ContextMenuService.Close();
+    }
+
+    protected async Task ViewFile()
+    {
+        showStatusWait = true;
+        ///////////////////////////////////////////////////////////////////////////////
+        //Chưa tìm được cách để track theo progress của hàm nên để loadingProgress tạm.
+        ///////////////////////////////////////////////////////////////////////////////
+        loadingProgress = 33;
+        StateHasChanged();
+        await Task.Delay(1);
+        bool updateState = true;
+        
+        try
+        {
+            string token = linkService.GenerateOneTimeLink($"{file.hash}{Path.GetExtension(file.fileName)}",file.bucketName);
+            await JSRuntime.InvokeVoidAsync("eval", $"let _discard_ = open(`{token}`, `_blank`)");
+        }
+        catch
+        {
+            updateState = false;
+        }
+        
+        if(updateState)
+        {
+            showStatusWait = false;
+            loadingProgress = 0;
+            StateHasChanged();
+        }
+        
+    }
+
+}

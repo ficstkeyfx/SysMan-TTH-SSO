@@ -1,0 +1,458 @@
+/* Sidebar container */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 300px;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-image: url("../background.png");
+  z-index: 100;
+  transition: all 0.5s ease;
+}
+
+/* .sidebar.close {
+  width: 50px;
+} */
+.sidebar.close {
+  width: 0;  /* Ẩn sidebar khi "close" */
+  visibility: hidden;  /* Giúp sidebar biến mất khi đóng */
+  opacity: 0; 
+}
+
+/* Logo section */
+.sidebar .logo-details {
+  height: 60px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.sidebar .logo-details i {
+  font-size: 30px;
+  color: #f9f5f6;
+  height: 50px;
+  min-width: 50px;
+  text-align: center;
+  line-height: 50px;
+}
+
+.sidebar .logo-details .logo_name {
+  font-size: 22px;
+  color: #f9f5f6;
+  font-weight: 600;
+  transition: 0.3s ease;
+  transition-delay: 0.1s;
+}
+
+.sidebar.close .logo-details .logo_name {
+  transition-delay: 0s;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Navigation links container */
+.sidebar .nav-links {
+  height: 100%;
+  padding: 3px 0 150px 0;
+  overflow: auto;
+}
+
+.sidebar.close .nav-links {
+  overflow: visible;
+}
+
+.sidebar .nav-links::-webkit-scrollbar {
+  display: none;
+}
+
+/* Basic list item styles */
+.sidebar .nav-links li {
+  position: relative;
+  list-style: none;
+  transition: all 0.4s ease;
+  width: 100%;
+}
+
+/* Icon link container */
+.sidebar .nav-links li .iocn-link {
+  display: flex;
+  align-items: center;
+  min-height: 50px;
+  width: 100%;
+  position: relative;
+}
+
+.sidebar.close .nav-links li .iocn-link {
+  display: block;
+}
+
+/* Icon styles */
+.sidebar .nav-links li i {
+  height: 50px;
+  min-width: 50px;
+  text-align: center;
+  line-height: 50px;
+  color: #f9f5f6;
+  font-size: 17px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+/* Arrow rotation */
+.sidebar .nav-links li.showMenu i.arrow {
+  transform: rotate(-180deg);
+}
+/* Arrow styles cho từng cấp menu */
+.sidebar .nav-links li.menu-level-1 > .iocn-link .arrow.level-1 {
+  transform: rotate(0);
+  transition: transform 0.3s ease;
+}
+
+.sidebar .nav-links li.menu-level-1.showMenu > .iocn-link .arrow.level-1 {
+  transform: rotate(-180deg);
+}
+
+.sidebar .nav-links li.menu-level-2 > .iocn-link .arrow.level-2 {
+  transform: rotate(0);
+  transition: transform 0.3s ease;
+}
+
+.sidebar .nav-links li.menu-level-2.showMenu > .iocn-link .arrow.level-2 {
+  transform: rotate(-180deg);
+}
+
+.sidebar .nav-links li.menu-level-3 > .iocn-link .arrow.level-3 {
+  transform: rotate(0);
+  transition: transform 0.3s ease;
+}
+
+.sidebar .nav-links li.menu-level-3.showMenu > .iocn-link .arrow.level-3 {
+  transform: rotate(-180deg);
+}
+
+.sidebar .nav-links li.menu-level-4 > .iocn-link .arrow.level-4 {
+  transform: rotate(0);
+  transition: transform 0.3s ease;
+}
+
+.sidebar .nav-links li.menu-level-4.showMenu > .iocn-link .arrow.level-4 {
+  transform: rotate(-180deg);
+}
+
+.sidebar.close .nav-links i.arrow {
+  display: none;
+}
+
+/* Link styles */
+.sidebar .nav-links li .iocn-link a {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  color: #f9f5f6;
+  flex: 1;
+  min-height: 50px;
+}
+
+
+.sidebar .nav-links li a .link_name {
+  font-size: 16px;
+  font-weight: 400;
+  color: #f9f5f6;
+  transition: all 0.4s ease;
+  white-space: normal;
+  word-wrap: break-word;
+  padding-right: 10px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+}
+
+.sidebar.close .nav-links li a .link_name {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Submenu styles */
+.sidebar .nav-links li .sub-menu {
+  padding: 0;
+  background-image: linear-gradient(135deg, #194cb8 10%, #11146e 100%);
+  display: none;
+  width: 100%;
+}
+
+.sidebar .nav-links li.showMenu .sub-menu {
+  display: block;
+}
+
+.sidebar .nav-links li .sub-menu a {
+  color: #f9f5f6;
+  font-size: 17px;
+  white-space: normal;
+  word-wrap: break-word;
+  opacity: 0.8;
+  transition: all 0.3s ease;
+  width: 100%;
+  line-height: 1.3;
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+}
+
+
+
+/* Level indentation */
+.sidebar .nav-links li.menu-level-2 > .iocn-link {
+  padding-left: 20px;
+}
+
+.sidebar .nav-links li.menu-level-3 > .iocn-link {
+  padding-left: 40px;
+}
+
+.sidebar .nav-links li.menu-level-4 > .iocn-link {
+  padding-left: 60px;
+}
+
+
+
+/* Focus states */
+.sidebar .nav-links li.menu-level-2 > .iocn-link > a.onfocus,
+.sidebar .nav-links li.menu-level-3 > .iocn-link > a.onfocus,
+.sidebar .nav-links li.menu-level-4 > .iocn-link > a.onfocus {
+  background: none;
+}
+
+.sidebar .nav-links li.menu-level-2 > .iocn-link:has(a.onfocus),
+.sidebar .nav-links li.menu-level-3 > .iocn-link:has(a.onfocus),
+.sidebar .nav-links li.menu-level-4 > .iocn-link:has(a.onfocus) {
+  background: #ffffff49;
+}
+
+
+
+/* Arrow icon */
+.sidebar .nav-links li .iocn-link .arrow {
+  height: 50px;
+  width: 50px;
+  text-align: center;
+  line-height: 50px;
+  color: #f9f5f6;
+  font-size: 17px;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+/* Closed sidebar submenu */
+.sidebar.close .nav-links li .sub-menu {
+  position: absolute;
+  left: 100%;
+  top: -10px;
+  margin-top: 0;
+  padding: 0;
+  border-radius: 0 6px 6px 0;
+  opacity: 0;
+  display: block;
+  pointer-events: none;
+  transition: 0s;
+}
+
+.sidebar.close .nav-links li:hover .sub-menu {
+  top: 0;
+  opacity: 1;
+  pointer-events: auto;
+  transition: all 0.4s ease;
+}
+
+/* Profile section */
+.sidebar .profile-details {
+  position: fixed;
+  bottom: 0;
+  width: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #e4e9f7;
+  padding: 12px 0;
+  transition: all 0.5s ease;
+}
+
+.sidebar.close .profile-details {
+  background: none;
+  width: 78px;
+}
+
+.sidebar .profile-details img {
+  height: 52px;
+  width: 52px;
+  object-fit: cover;
+  border-radius: 16px;
+  margin: 0 14px 0 12px;
+  background: #e4e9f7;
+  transition: all 0.5s ease;
+}
+
+.sidebar.close .profile-details img {
+  padding: 10px;
+}
+
+.sidebar .profile-details .profile_name,
+.sidebar .profile-details .job {
+  color: #f9f5f6;
+  font-size: 18px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.sidebar.close .profile-details i,
+.sidebar.close .profile-details .profile_name,
+.sidebar.close .profile-details .job {
+  display: none;
+}
+
+/* Home section */
+.home-section {
+  position: relative;
+  background: #fff;
+  height: 100vh;
+  left: 300px;
+  width: calc(100% - 300px);
+  transition: all 0.5s ease;
+}
+
+/* Khi sidebar bị đóng (có class "close") */
+.sidebar.close ~ .home-section {
+  left: 0;  /* Đưa home-section về vị trí gốc */
+  width: 100%;  /* Đảm bảo full width của home-section */
+}
+
+
+.home-section .home-content {
+  height: 50px;
+  display: flex;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-image: url("../background.png");
+}
+
+.home-section .home-content .bx-menu {
+  margin: 0 15px;
+  cursor: pointer;
+  color: #374259;
+  font-size: 35px;
+}
+.sidebar .nav-links > li:hover > .iocn-link {
+  background: rgba(255, 255, 255, 0.4);  /* Opacity thấp hơn cho menu cấp 1 */
+}
+
+.sidebar .nav-links > li.active > .iocn-link {
+  background: rgba(255, 255, 255, 0.4);
+}
+/* Active state cho menu cấp 1 */
+.sidebar .nav-links > li > .iocn-link.active {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* Giữ màu khi hover vào menu đang active */
+.sidebar .nav-links > li > .iocn-link.active:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+/* Active state cho menu cấp 1 */
+.sidebar .nav-links > li > .iocn-link {
+  position: relative;
+}
+/* Trạng thái active */
+.sidebar .nav-links > li > .iocn-link.active:before {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Giữ trạng thái hover */
+.sidebar .nav-links > li > .iocn-link:hover:before {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+
+
+/* Giữ trạng thái hover */
+.sidebar .nav-links > li > .iocn-link:hover:before {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+
+
+
+/* chỉnh màu nền gốc của mỗi cấp menu */
+.sidebar .nav-links li.menu-level-2,
+.sidebar .nav-links li.menu-level-3,
+.sidebar .nav-links li.menu-level-4 {
+  background: transparent;
+  width: 100%;
+}
+/* .menu-level-2{
+  background: #10355c!important;#0953c3
+} */
+.menu-level-3 {
+    background: #094bb1 !important;
+}
+.menu-level-4 {
+    background: #0a53c4 !important;
+}
+
+/* Menu Level 2 , Nếu đổi màu thì đổi hết background của cả 4 thẻ sau*/
+.sidebar .nav-links li.menu-level-2:hover > .iocn-link {
+  background: rgba(255, 255, 255, 0.25);
+}
+.sidebar .nav-links li.menu-level-2.active > .iocn-link,
+.sidebar .nav-links li.menu-level-2 > .iocn-link.active {
+    background: rgba(255, 255, 255, 0.25);
+}
+.sidebar .nav-links li.menu-level-2 > .iocn-link:hover {
+  background: rgba(255, 255, 255, 0.25) !important;
+}
+.sidebar .nav-links li.menu-level-2 > .iocn-link:has(a.onfocus) {
+  background: rgba(255, 255, 255, 0.25) !important;
+}
+
+/* Menu Level 3 ,Nếu đổi màu thì đổi hết background của cả 4 thẻ sau */
+.sidebar .nav-links li.menu-level-3:hover > .iocn-link {
+  background: rgba(255, 255, 255, 0.35);
+}
+.sidebar .nav-links li.menu-level-3.active > .iocn-link,
+.sidebar .nav-links li.menu-level-3 > .iocn-link.active {
+  background: rgba(255, 255, 255, 0.35);
+}
+.sidebar .nav-links li.menu-level-3 > .iocn-link:hover {
+  background: rgba(255, 255, 255, 0.35) !important;
+}
+.sidebar .nav-links li.menu-level-3 > .iocn-link:has(a.onfocus) {
+  background: rgba(255, 255, 255, 0.35) !important;
+}
+
+/* Menu Level 4 , Nếu đổi màu thì đổi hết background của cả 4 thẻ sau*/
+.sidebar .nav-links li.menu-level-4:hover > .iocn-link {
+    background: rgba(255, 255, 255, 0.4);
+  }
+
+.sidebar .nav-links li.menu-level-4.active > .iocn-link,
+.sidebar .nav-links li.menu-level-4 > .iocn-link.active {
+    background: rgba(255, 255, 255, 0.4);
+}
+.sidebar .nav-links li.menu-level-4 > .iocn-link:hover {
+    background: rgba(255, 255, 255, 0.4) !important;
+}
+.sidebar .nav-links li.menu-level-4 > .iocn-link:has(a.onfocus) {
+    background: rgba(255, 255, 255, 0.4) !important;
+}
+/* Add parent highlight on child hover */
+.menu-level-4:hover ~ .menu-level-3,
+.menu-level-4:hover ~ .menu-level-2,
+.menu-level-4:hover ~ .menu-level-1 > .iocn-link {
+    background: rgba(255, 255, 255, 0.2) !important;
+  }
+
+
+/* Responsive styles */
+@media (max-width: 420px) {
+  .sidebar.close .nav-links li .sub-menu {
+    display: none;
+  }
+}

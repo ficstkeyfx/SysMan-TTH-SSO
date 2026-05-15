@@ -1,0 +1,178 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>IDC.Backend.Servives</name>
+    </assembly>
+    <members>
+        <member name="M:IDC.Backend.Servives.Controllers.ApiController`1.Get(System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Phương thức lấy mộ bản ghi không phân trang
+            </summary>
+            <param name="columns">Danh sách các cột cần lấy dữ liệu</param>
+            <param name="filter">Biểu thức để lọc dữ liệu (ví dụ: <c>Id == 10 __AND__ "abc".Contains(UserName) __AND__ UserName.Contains("abc")</c>)</param>
+            <param name="ct">Token hủy bất đồng bộ</param>
+            <returns></returns>
+        </member>
+        <member name="M:IDC.Backend.Servives.Controllers.ApiController`1.GetAllPaged(IDC.Backend.Servives.Abstractions.PaginationFilter,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Phương thức lấy danh sách bản ghi có phân trang
+            </summary>
+            <param name="pagingfilter">Bộ lọc phân trang (PageNumber, PageSize)</param>
+            <param name="filter">Biểu thức để lọc dữ liệu (ví dụ: <c>Id == 10 __AND__ "abc".Contains(UserName) __AND__ UserName.Contains("abc")</c>)</param>
+            <param name="orderby">Biểu thức để sắp xếp dữ liệu(ví dụ: <c>Name asc, Price desc, CreatedDate</c>)</param>
+            <param name="ct">Token hủy bất đồng bộ</param>
+            <returns></returns>
+        </member>
+        <member name="M:IDC.Backend.Servives.Controllers.ApiController`1.GetAll(System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Phương thức lấy danh sách bản ghi không phân trang
+            </summary>
+            <param name="columns">Danh sách các cột cần lấy dữ liệu</param>
+            <param name="filter">Biểu thức để lọc dữ liệu (ví dụ: <c>Id == 10 __AND__ "abc".Contains(UserName) __AND__ UserName.Contains("abc")</c>)</param>
+            <param name="orderby">Biểu thức để sắp xếp dữ liệu(ví dụ: <c>Name asc, Price desc, CreatedDate</c>)</param>
+            <param name="ct">Token hủy bất đồng bộ</param>
+            <returns></returns>
+        </member>
+        <member name="M:IDC.Backend.Servives.Controllers.ApiController`1.Create(`0,System.Threading.CancellationToken)">
+            <summary>
+            Phương thức tạo một bản ghi
+            </summary>
+            <param name="item">Bản ghi cần tạo</param>
+            <param name="ct">Token hủy bất đồng bộ</param>
+            <returns></returns>
+        </member>
+        <member name="M:IDC.Backend.Servives.Controllers.ApiController`1.Create(System.Collections.Generic.List{`0},System.Threading.CancellationToken)">
+            <summary>
+            Phương thức tạo một bản ghi
+            </summary>
+            <param name="items">Các bản ghi cần tạo</param>
+            <param name="ct">Token hủy bất đồng bộ</param>
+            <returns></returns>
+        </member>
+        <member name="M:IDC.Backend.Servives.Controllers.ApiController`1.Update(`0,System.Threading.CancellationToken)">
+            <summary>
+            Phương thức cập nhật một bản ghi
+            </summary>
+            <param name="item">Bản ghi cần tạo</param>
+            <param name="ct"></param>
+            <returns></returns>
+        </member>
+        <member name="M:IDC.Backend.Servives.Controllers.ApiController`1.Update(System.Collections.Generic.List{`0},System.Threading.CancellationToken)">
+            <summary>
+            Phương thức cập nhật nhiều bản ghi
+            </summary>
+            <param name="items">Các bản ghi cần cập nhật</param>
+            <param name="ct">Token hủy bất đồng bộ</param>
+            <returns></returns>
+        </member>
+        <member name="M:IDC.Backend.Servives.Controllers.ApiController`1.Delete(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Phương thức xoá bản ghi theo điều kiện
+            </summary>
+            <param name="filter">Biểu thức để lọc dữ liệu cần xoá (ví dụ: <c>Id == 10 __AND__ "abc".Contains(UserName) __AND__ UserName.Contains("abc")</c>)</param>
+            <param name="ct">Token hủy bất đồng bộ</param>
+            <returns></returns>
+        </member>
+        <member name="M:IDC.Backend.Servives.Controllers.ApiController`1.Delete(System.Collections.Generic.List{`0},System.Threading.CancellationToken)">
+            <summary>
+            Phương thức xoá nhiều bản ghi
+            </summary>
+            <param name="items">Danh sách các bản ghi cần xoá</param>
+            <param name="ct">Token hủy bất đồng bộ</param>
+            <returns></returns>
+        </member>
+        <member name="M:IDC.Backend.Servives.Controllers.AuthController`1.Login(System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Đăng nhập hệ thống bằng UserName và Password.
+            Trả về IdUser và UserName nếu thành công.
+            </summary>
+            <param name="userName">Thông tin đăng nhập (UserName)</param>
+            <param name="password">Thông tin đăng nhập (Password)</param>
+            <param name="ct">Token hủy bất đồng bộ</param>
+            <returns>ServiceResponse chứa token hoặc thông tin đăng nhập</returns>
+        </member>
+        <member name="M:IDC.Backend.Servives.Controllers.AuthController`1.GetUserId(System.Threading.CancellationToken)">
+            <summary>
+            Lấy IdUser của người dùng hiện tại (từ token đăng nhập).
+            </summary>
+            <param name="ct">Token hủy bất đồng bộ</param>
+            <returns>ServiceResponse chứa IdUser hoặc null nếu chưa đăng nhập</returns>
+        </member>
+        <member name="M:IDC.Backend.Servives.Controllers.AuthController`1.GetUserName(System.Threading.CancellationToken)">
+            <summary>
+            Lấy UserName của người dùng hiện tại (từ token đăng nhập).
+            </summary>
+            <param name="ct">Token hủy bất đồng bộ</param>
+            <returns>ServiceResponse chứa UserName hoặc null nếu chưa đăng nhập</returns>
+        </member>
+        <member name="M:IDC.Backend.Servives.Controllers.NumController.GetInt(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Phương thức một số nguyên định danh cho một bản ghi
+            </summary>
+            <param name="seqName"> Tên sequence tương ứng với bảng dữ liệu</param>
+            <returns>Một số nguyên</returns>
+            <param name="ct">Token hủy bất đồng bộ</param>
+            <returns></returns>
+        </member>
+        <member name="M:IDC.Backend.Servives.Controllers.NumController.GetLong(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Phương thức một số long định danh cho một bản ghi
+            </summary>
+            <param name="seqName"> Tên sequence tương ứng với bảng dữ liệu</param>
+            <returns>Một số long</returns>
+            <param name="ct">Token hủy bất đồng bộ</param>
+            <returns></returns>
+        </member>
+        <member name="M:IDC.Backend.Servives.Controllers.TvfChucNangController`1.getTvfChucNang(System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Lấy danh sách chức năng của một người dùng
+            </summary>
+            <param name="iduser">Số định danh nhóm (iduser)</param>
+            <param name="ct">Token hủy bất đồng bộ</param>
+            <returns>Danh sách chức năng</returns>
+        </member>
+        <member name="M:IDC.Backend.Servives.Controllers.TvfNguoiDungController`1.getTvfUsers(System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Lấy danh sách người dùng thuộc một nhóm
+            </summary>
+            <param name="idnhom">Số định danh nhóm (idnhom)</param>
+            <param name="ct">Token hủy bất đồng bộ</param>
+            <returns>Danh sách người dùng</returns>
+        </member>
+        <member name="P:IDC.Backend.Servives.Options.DynamicQueryOptions.EnableClientExpressions">
+            <summary>Allow client to send dynamic filter/order strings (System.Linq.Dynamic.Core).</summary>
+        </member>
+        <member name="P:IDC.Backend.Servives.Options.DynamicQueryOptions.AllowedProperties">
+            <summary>Optional whitelist of allowed property names (case-insensitive). If empty, all are allowed.</summary>
+        </member>
+        <member name="F:IDC.Backend.Servives.ApiService.ApiService`1._db">
+            
+        </member>
+        <member name="F:IDC.Backend.Servives.AuthService.AuthService`1._db">
+            
+        </member>
+        <member name="M:IDC.Backend.Servives.AuthService.AuthService`1.GetUserId">
+            <summary>
+            Phương thức lấy IdUser của người dùng đăng nhập
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:IDC.Backend.Servives.AuthService.AuthService`1.GetUserName">
+            <summary>
+            Phương thức lấy UserName của người dùng đăng nhập
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:IDC.Backend.Servives.AuthService.AuthService`1.CreateToken(IDC.Backend.Servives.AuthService.AuthService{`0}.LoginResult)">
+            <summary>
+            Phương thức tạo token từ hai tham số UserName và IdUser
+            </summary>
+            <param name="user"></param>
+            <returns></returns>
+            <exception cref="T:System.Exception"></exception>
+        </member>
+        <member name="F:IDC.Backend.Servives.NumService.NumService._sql">
+            
+        </member>
+    </members>
+</doc>

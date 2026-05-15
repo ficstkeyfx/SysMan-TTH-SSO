@@ -1,0 +1,197 @@
+@page "/danh-muc-vai-tro"
+
+@using IDC.Frontend.Services.Abstraction
+@using IDC.Frontend.Services.ApiService
+@using IDC.Shared.Models
+@inject ClientServices client
+@inject NavigationManager UriHelper
+@inject ApiServices apiService
+<style>
+    .bold-placeholder .rz-dropdown .rz-placeholder {
+        font-weight: 700;
+    }
+</style>
+<LoadingIndicator IsSearching="@isRadzenSearching" IsDeleting="@isRadzenDeleting" IsSaving="@isRadzenSaving" />
+
+<div class="table-wrapper bold-placeholder">
+    <!-- DROPDOWN -->
+    <div style="margin-top:10px; margin-bottom:15px">
+        <RadzenDropDown Data="@lstPhanMem"
+                        TextProperty="TenPhanMem"
+                        ValueProperty="IdPhanMem"
+                        @bind-Value="idPhanMem"
+                        Placeholder="-- Chọn phần mềm --"
+                        Style="width:100%"
+                        AllowClear="true"
+                        Change="OnPhanMemChanged" />
+    </div>
+</div>
+
+@* ////////////////////////////////// *@
+@* Phần thiết kế giao diện người dùng *@
+@* ////////////////////////////////// *@
+<InlineAPI @ref=grd TItem="tbVaiTro" TableTitle="DANH MỤC VAI TRÒ" 
+           HasOperation="editData"
+           AddNew="editData"
+           filter="@filterVaiTro"
+           OnCreate="(data => Create((tbVaiTro)data))"
+           OnUpdate="(data => Update((tbVaiTro)data))"
+           OnDelete="(data => Delete((tbVaiTro)data))"
+           OnListDataChange="(data => Update((List<tbVaiTro>)data))"
+           OnLoadingChanged="HandleTableLoadingChanged">
+
+    <MoreColumns>
+
+        <RadzenDataGridColumn TItem="tbVaiTro" Title="Vai trò" TextAlign="TextAlign.Left" Sortable="false"
+                              Width="100%" Property="TenVaiTro">
+            <EditTemplate Context="ctx">
+                <RadzenTextBox @bind-Value=@ctx.TenVaiTro Style="width: 100%" Placeholder="" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+
+        <RadzenDataGridColumn TItem="tbVaiTro" Title="Id Vai trò" TextAlign="TextAlign.Center" Sortable="false"
+                              Width="120px" Property="IdVaiTro">
+        </RadzenDataGridColumn>
+    </MoreColumns>
+</InlineAPI>
+
+@code {
+    // Khai báo Grid
+    InlineAPI<tbVaiTro> grd;
+
+    List<tbPhanMem> lstPhanMem = new List<tbPhanMem>();
+    List<tbVaiTro> lstVaiTro = new List<tbVaiTro>();
+    int idPhanMem;
+
+
+    // Điều kiện lọc dữ liệu
+    string? filterVaiTro = $"IdPhanMem==null";
+
+    //HIỆU ỨNG TÌM XOÁ LƯU
+    bool isRadzenSearching = false;
+    bool isRadzenDeleting = false;
+    bool isRadzenSaving = false;
+
+    // Biến cho phép có được cập nhật dữ liệu không
+    bool editData = true;
+
+    // tbUser user = new tbUser();
+
+    // 2 cờ loading
+    bool isSelfLoading = false;   // cha đang khởi tạo / xử lý
+    bool isTableLoading = false;  // TableAPI đang load
+
+    // Biến điều khiển trạng thái Loading
+    bool isLoading => isSelfLoading || isTableLoading;
+    protected override async Task OnInitializedAsync()
+    {
+        // Bắt đầu các công việc khởi tạo cha
+        isSelfLoading = true;
+
+        try
+        {
+            // // Lấy tên đăng nhập hệ thống
+            // string? username = await authService.GetUserName();
+
+            // // Nếu không có người dùng thì dừng
+            // if (String.IsNullOrEmpty(username)) return;
+
+            // // Lấy người dùng với tên cho trước
+            // string filter = $"UserName==\"{username}\"";
+            // user = await apiService.Get<tbUser>(filter);
+
+            // Lấy danh sách các chức năng mà người dùng được
+            // phép thao tác với dữ liệu
+
+            // Lọc phần mềm
+            string filter = $"VietTat!=null";
+            lstPhanMem = await client.apiSevices.GetAll<tbPhanMem>(filter);
+
+        }
+        catch (Exception e)
+        {
+
+        }
+        finally
+        {
+            // Xong load dữ liệu ở form cha
+            isSelfLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    // Nhận sự kiện loading từ InlineAPI
+    void HandleTableLoadingChanged(bool loading)
+    {
+        isTableLoading = loading;
+        StateHasChanged();
+    }
+
+    async Task OnPhanMemChanged()
+    {
+        // Lọc lấy danh sách các chức năng của phần mềm được chọn
+        // từ dropdown
+        filterVaiTro = $"IdPhanMem=={idPhanMem}";
+        await grd.ReloadTable();
+        StateHasChanged();
+    }
+
+    protected async Task Create(tbVaiTro data)
+    {
+        try
+        {
+            //1. Lấy mã định danh cho bản ghi mới
+            data.IdVaiTro = await client.numServices.GetInt<tbVaiTro>();
+            data.IdPhanMem = idPhanMem;
+            //2. Thêm dữ liệu vào bảng
+            await apiService.Create<tbVaiTro>(data);
+            //3. Làm mới lại grid
+            //  await grd.ReloadTable();
+
+        }
+        catch (ApiException e)
+        {
+
+        }
+        finally
+        {
+
+        }
+    }
+
+    protected async Task Update(tbVaiTro data)
+    {
+        //Nếu là thêm mới
+        if (data.IdVaiTro == 0)
+        {
+            data.IdVaiTro = await client.numServices.GetInt<tbVaiTro>();
+            data.IdPhanMem = idPhanMem;
+            //2. Thêm dữ liệu vào bảng
+            await apiService.Create<tbVaiTro>(data);
+        }
+        else
+        {
+            // Cập nhật dữ liệu
+            await apiService.Update<tbVaiTro>(data);
+        }
+    }
+    protected async Task Update(List<tbVaiTro> data)
+    {
+        if (data.Count > 0)
+        {
+            await apiService.Update<tbVaiTro>(data);
+        }
+    }
+    protected async Task Delete(tbVaiTro record)
+    {
+        //1. Chuẩn bị điều kiện
+        string? filter = null;
+        filter = $"IdVaiTro=={record.IdVaiTro}";
+
+        //2. Xoá dữ liệu từ bảng tbTonGiao
+        await apiService.Delete<tbVaiTro>(filter);
+        filter = null;
+        //await grd.ReloadTable();
+    }
+
+}

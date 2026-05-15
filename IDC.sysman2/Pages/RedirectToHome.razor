@@ -1,0 +1,8 @@
+@inject NavigationManager UriHelper
+
+@code {
+    protected override void OnAfterRender(bool firstRender)
+    {
+        UriHelper.NavigateTo("/home");
+    }
+}

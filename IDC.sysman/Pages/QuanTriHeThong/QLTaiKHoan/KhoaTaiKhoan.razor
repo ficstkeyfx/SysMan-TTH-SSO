@@ -1,0 +1,79 @@
+@page "/KhoaTaiKhoan"
+@using IDC.BlazorUi.Components.Components
+@using IDC.Frontend.Services
+@using IDC.Shared.Models
+@using SysMan.Models
+
+@using SysMan.Components
+@inject NavigationManager UriHelper
+@inject NotificationService notificationService
+@inject ClientServices client
+<style>
+    .rz-label {
+        margin-bottom: 0;
+        font-weight: bold;
+    }
+
+    .rz-column-title-content {
+        font-weight: bold;
+    }
+</style>
+
+<InlineAPI @ref=grd TItem="tbSoftwareUser" TableTitle="DANH SÁCH NGƯỜI DÙNG" query=@query
+           HasAddButton=false HasAddRowAfter=false HasDeleteButton=false
+           OnUpdate="(data => Update((tbSoftwareUser)data))">
+    <MoreColumns>
+        <RadzenDataGridColumn TItem="tbSoftwareUser" Title="Tên tài khoản" TextAlign="TextAlign.Left" Sortable="false"
+                              Width="200px" Property="UserName" Frozen="true">
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="tbSoftwareUser" Title="Họ và tên người dùng" TextAlign="TextAlign.Left" Sortable="false"
+                              Width="100%" Property="FullName" Frozen="true">
+        </RadzenDataGridColumn>
+            @*@<RadzenDataGridColumn TItem="tbSoftwareUser" Property="LockoutEnabled" Title="Khóa tài khoản" TextAlign="TextAlign.Center" Sortable="false"
+                                  Filterable="false" Width="170px">
+                <Template Context="ctx">
+                <RadzenCheckBox @bind-Value="ctx.KhoaTaiKhoan" Disabled="true" TValue="bool" />
+                </Template>
+            <EditTemplate Context="ctx">
+                <RadzenCheckBox @bind-Value="ctx.KhoaTaiKhoan" Disabled="false" TValue="bool" />
+                </EditTemplate>
+            </RadzenDataGridColumn> *@
+    </MoreColumns>
+</InlineAPI>
+
+@code {
+    List<tbSoftwareUser> lstUser;
+    InlineAPI<tbSoftwareUser> grd;
+    string query;
+    tbSoftwareUser user = new tbSoftwareUser();
+    List<TypeDrop> lstNhom = new List<TypeDrop>();
+    protected override async Task OnInitializedAsync()
+    {
+        //lstNhom = dbContext.tbNhoms.Select(p => new TypeDrop { Name = p.TenNhom, Id = p.IdNhom }).ToList();
+        query = "api/user/getallpaged";
+        //query = dbContext.tbSoftwareUsers.AsQueryable();
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender == true)
+        {
+            // query = dbContext.tbSoftwareUsers.AsNoTracking().AsQueryable();
+            // await grd.ForceRefresh(query);
+            StateHasChanged();
+        }
+    }
+    protected async Task Update(tbSoftwareUser record)
+    {
+        try
+        {
+            // dbContext.tbSoftwareUsers.Update(record);
+            // await dbContext.SaveChangesAsync();
+            await grd.ReloadTable();
+            notificationService.Notify(NotificationSeverity.Success, "Cập nhật thành công", null, duration: 2000);
+        }
+        catch
+        {
+            notificationService.Notify(NotificationSeverity.Error, "Lỗi khi lưu dữ liệu", null, duration: -1);
+        }
+    }
+}

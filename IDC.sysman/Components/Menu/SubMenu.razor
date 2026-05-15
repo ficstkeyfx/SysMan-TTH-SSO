@@ -1,0 +1,176 @@
+@inject NavigationManager UriHelper
+@inject Radzen.DialogService dialog
+@inject IWebHostEnvironment Env
+@using System.Reflection
+<li class="@GetMenuClass()">
+    <div class="iocn-link @(Focus ? "active" : "")">
+        <a href="javascript:void(0)" class="@(Focus ? "onfocus" : "")" @onclick=@navigateMenu>
+            <i class="@Icon" />
+            <span class="link_name">@Name</span>
+        </a>
+        @if (ChildMenus != null)
+        {
+            <i class='bx bxs-chevron-down arrow level-@Level' @onclick=@toggleSubMenus></i>
+        }
+    </div>
+    @if (ChildMenus != null)
+    {
+        <ul class="sub-menu" style="display: @(isExpanded ? "block" : "none")">
+            @ChildMenus
+        </ul>
+    }
+</li>
+@code {
+    [Parameter] public string Name { get; set; } = "";
+    [Parameter] public string _Path { get; set; } = "";
+    [Parameter] public string Icon { get; set; } = "";
+    [Parameter] public int Id { get; set; } = 0;
+    [Parameter] public bool Focus { get; set; } = false;
+    [Parameter] public RenderFragment? ChildMenus { get; set; }
+    [Parameter] public EventCallback<int> OnClickMenu { get; set; }
+    [Parameter] public int Level { get; set; } = 1;
+    
+    private bool isExpanded = false;
+
+    private string GetMenuClass()
+    {
+        var classes = new List<string>
+        {
+            $"menu-level-{Level}",
+            isExpanded ? "showMenu" : "",
+            Focus ? "active" : ""  // Thêm class active khi Focus = true
+        };
+        return string.Join(" ", classes.Where(c => !string.IsNullOrEmpty(c)));
+    }
+    protected void toggleSubMenus()
+    {
+        isExpanded = !isExpanded;
+        StateHasChanged();
+    }
+
+    // protected async Task navigateMenu()
+    // {
+    //     await OnClickMenu.InvokeAsync(Id);
+    //     if (!string.IsNullOrEmpty(Path))
+    //     {
+    //         UriHelper.NavigateTo(Path);
+    //     }
+    // }
+    protected async void navigateMenu()
+    {
+        await OnClickMenu.InvokeAsync(Id);
+        ////////////////////////////////////////////////////////////////////
+        // _Path: đường dẫn đến một trang, có hai dạng
+        // /<đường dẫn> hoặc
+        // <tên file>:<tiêu đề trang>:<chiều rộng>:<chiều cao>:<true|false>
+        // true: hiển thị trang trong phần body của trang Home
+        // false: hiển thị toàn màn hình
+        ///////////////////////////////////////////////////////////////////
+        if (!string.IsNullOrEmpty(_Path))
+        {
+            if (_Path.Contains(":"))
+            {
+                List<string> results = new();
+                string dialogComponentName = "";// Tên Dialog
+                string title = ""; //Tiêu đề dialog
+                string width = "100vw";   //Chiều rộng
+                string height = "100vh"; //Chiều cao
+                bool fixhomepage = false;// true: hiển thị trong form home; false: hiển thị theo kích thước truyền vào
+
+                var parts = _Path.Split(':');// Tách các tham số truyền vào
+                if (parts.Length >= 2)
+                {
+                    dialogComponentName = parts[0];
+                    title = parts[1];
+
+
+                    if (parts.Length >= 3 && !string.IsNullOrWhiteSpace(parts[2]))
+                        width = parts[2];
+
+                    if (parts.Length >= 4 && !string.IsNullOrWhiteSpace(parts[3]))
+                        height = parts[3];
+
+                    if (parts.Length >= 5 && bool.TryParse(parts[4], out bool parsedValue))
+                        fixhomepage = parsedValue;
+                }
+
+                if (parts.Length >= 2)
+                {
+                    var assembly = typeof(Program).Assembly;
+                    var dialogType = assembly.GetTypes()
+                        .FirstOrDefault(tb => tb.Name.Equals(dialogComponentName, StringComparison.OrdinalIgnoreCase));
+
+                    DialogOptions options;
+
+                    if (fixhomepage)
+                    {
+                        options = new DialogOptions()
+                            {
+                                Style = "position: fixed; left: 300px; top: 0; padding: 16px; background: white; " +
+                "width: calc(100vw - 300px); height: 100vh; z-index:1050; max-width: 100%; max-height: 100%;",
+                                CssClass = "rz-custom-dialog",
+                                CloseDialogOnOverlayClick = false
+                            };
+
+                    }
+                    else
+                    {
+                        options = new DialogOptions()
+                            {
+                                Width = width,
+                                Height = height,
+                                CloseDialogOnOverlayClick = false
+                            };
+                    }
+
+                    await dialog.OpenAsync(title, dialogType, null, options);
+                }
+            }
+            else
+            {
+                UriHelper.NavigateTo(_Path);
+            }
+        }
+    }
+
+    /// <summary>
+    ///
+    /// Phương thức trả lại kiểu của một Component
+    /// Date: 04/08/2025, làm lại
+    /// </summary>
+    /// <param name="componentName">Tên component truyền vào</param>
+    /// <returns>Kiểu của component</returns>
+    private Type? FindComponentType(string componentName)
+    {
+        return AppDomain.CurrentDomain
+            .GetAssemblies()
+            .SelectMany(a => a.GetTypes())
+            .FirstOrDefault(t => t.FullName != null && t.FullName.EndsWith(componentName));
+    }
+
+    /// <summary>
+    /// Tìm đường dẫn tương đối từ thư mục Pages có chứa chuỗi cho trước
+    /// Phương thức này không dùng, nhưng có thể tham khảo cho việc khác
+    /// khi cần
+    /// </summary>
+    /// <param name="folderPath"></param>
+    /// <param name="searchString"></param>
+    /// <returns></returns>
+    private List<string> FindFilesContainingString(string folderPath, string searchString)
+    {
+        var matchedFiles = new List<string>();
+        var allFiles = Directory.GetFiles(folderPath, "*.razor", SearchOption.AllDirectories);
+
+        foreach (var file in allFiles)
+        {
+            string content = File.ReadAllText(file);
+            if (file.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            {
+                matchedFiles.Add(file.Replace(Env.ContentRootPath + Path.DirectorySeparatorChar, ""));
+            }
+        }
+
+        return matchedFiles;
+    }
+
+}

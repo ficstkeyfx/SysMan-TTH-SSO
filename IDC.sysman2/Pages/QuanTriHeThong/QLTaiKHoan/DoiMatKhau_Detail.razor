@@ -1,0 +1,107 @@
+﻿@page "/DoiMatKhau"
+@using IDC.Shared.Models
+
+@inject NotificationService notificationService
+@inject ClientServices client
+<style>
+    .rz-textbox {
+        width: 100%;
+    }
+</style>
+<style>
+    .rz-dialog-titlebar {
+        margin-left: 20px;
+        margin-bottom: -20px;
+    }
+</style>
+@if (!Loading)
+{
+    <Form TItem="tbSystemUser" Record=@objUser OnSubmit=Submit>
+        <MoreForms>
+            <div class="row">
+                <FormField Text="Tên đăng nhập" Size="12">
+                    <RadzenTextBox Disabled=true @bind-Value=@objUser.UserName />
+                </FormField>
+                <FormField Text="Tên đầy đủ" Size="12">
+                    <RadzenTextBox Disabled=true @bind-Value=@objUser.FullName />
+                </FormField>
+                <FormField Text="Mật khẩu cũ" Size="12">
+                    <RadzenPassword @bind-Value=@OldPassword />
+                </FormField>
+             
+                <FormField Text="Mật khẩu mới" Size="12">
+                    <RadzenPassword @bind-Value=@NewPassword />
+                </FormField>
+                <FormField Text="Nhập lại mật khẩu mới" Size="12">
+                    <RadzenPassword @bind-Value=@ConfirmPassword />
+                </FormField>
+            </div>
+        </MoreForms>
+    </Form>
+}
+@code {
+    [Parameter] public tbSystemUser Record { set; get; }//Đối tượng thao tác
+    tbSystemUser objUser = new tbSystemUser();
+    tbSoftwareUser user = new tbSoftwareUser();
+    bool Loading = false;
+    string OldPassword;
+    string NewPassword;
+    string ConfirmPassword;
+    protected override async Task OnInitializedAsync()
+    {
+
+        //Record truyền vào là null thì nhập mới
+        //objUser = await apiService.Me<tbSoftwareUser>("api/user/me");
+        // user = await autService.GetMe();
+        // if(user!=null)
+        // {
+        //     objUser.UserName = user.UserName;
+        //     objUser.FullName = user.FullName;
+        // }
+    }
+
+    protected async Task Submit(tbSystemUser obj)
+    {
+        try
+        {
+            if (OldPassword == null && (obj.PasswordHash == null || obj.PasswordHash == ""))
+            {
+                if (NewPassword != ConfirmPassword)
+                {
+                    notificationService.Notify(NotificationSeverity.Error, "Mật khẩu mới và xác thực mật khẩu mới không giống nhau", null, duration: 2000);
+                    return;
+                }
+
+                obj.PasswordHash = HashingServices.HashPassword(NewPassword);
+                await client.apiSevices.Update<tbSystemUser>(obj);
+                notificationService.Notify(NotificationSeverity.Success, "Lần đầu đổi mật khẩu?", null, duration: 2000);
+                return;
+            }
+
+            // Kiểm tra mật khẩu cũ
+            string oldPasswordHash = HashingServices.HashPassword(OldPassword);
+            if (obj.PasswordHash != oldPasswordHash)
+            {
+                notificationService.Notify(NotificationSeverity.Error, "Mật khẩu cũ chưa đúng", null, duration: 2000);
+                return;
+            }
+
+            // Kiểm tra mật khẩu mới có khớp không
+            if (NewPassword != ConfirmPassword)
+            {
+                notificationService.Notify(NotificationSeverity.Error, "Mật khẩu mới và xác thực mật khẩu mới không giống nhau", null, duration: 2000);
+                return;
+            }
+
+            // Cập nhật mật khẩu mới
+            obj.PasswordHash = HashingServices.HashPassword(NewPassword);
+            await client.apiSevices.Update<tbSystemUser>(obj);
+            notificationService.Notify(NotificationSeverity.Success, "Đã cập nhật mật khẩu", null, duration: 2000);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e.Message);
+            notificationService.Notify(NotificationSeverity.Error, "Lỗi khi lưu dữ liệu", null, duration: 2000);
+        }
+    }
+}

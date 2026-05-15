@@ -1,0 +1,56 @@
+@page "/DoiMatKhau1"
+@using IDC.BlazorUi.Components.Components
+@using IDC.Frontend.Services
+@using IDC.Shared.Models
+@using SysMan.Models
+@using SysMan.Components
+@inject NavigationManager UriHelper
+@inject ClientServices client
+<style>
+    .rz-label {
+        margin-bottom: 0;
+        font-weight: bold;
+    }
+
+    .rz-column-title-content {
+        font-weight: bold;
+    }
+</style>
+
+<TableAPI @ref=grd TItem="tbSystemUser" TableTitle="TÀI KHOẢN NGƯỜI DÙNG" FormTitle="THÔNG TIN MẬT KHẨU" query=@query lamda=@lamda
+       AddNew=false isSearch=false ShowClose=true >
+    <MoreColumns>
+        <RadzenDataGridColumn TItem="tbSystemUser" Title="Tên tài khoản" TextAlign="TextAlign.Left" Sortable="false"
+                              Width="200px" Property="UserName" Frozen="true">
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="tbSystemUser" Title="Họ và tên người dùng" TextAlign="TextAlign.Left" Sortable="false"
+                              Width="100%" Property="FullName" Frozen="true">
+        </RadzenDataGridColumn>
+    </MoreColumns>
+    <FormDialog Context="ctx">
+        <DoiMatKhau_Detail Record="ctx" />
+    </FormDialog>
+</TableAPI>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> authenticationState { get; set; } = default!;
+    TableAPI<tbSystemUser> grd;
+    string query;
+    tbSoftwareUser user = new tbSoftwareUser();
+    string lamda = "";
+    protected override async Task OnInitializedAsync()
+    {
+        //var authState = await authenticationState;
+        //string token = authState.User.Claims. ?? "";
+        //user = await apiService.Me<tbSoftwareUser>("api/user/me");
+        // user = await autService.GetMe();
+        // query = "api/systemuser/getallpaged";
+        // lamda = "p=>(p.IdUser==" + user.IdUser + ")";
+
+        // //user = dbContext.tbSoftwareUsers.Where(item => item.token == token).FirstOrDefault();
+        // if (user == null)
+        // {
+        //     UriHelper.NavigateTo($"/login", true);
+        // }
+    }
+}

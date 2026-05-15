@@ -1,0 +1,258 @@
+@typeparam TItem
+@inject DialogService dialog
+@inject NotificationService notificationService
+@inject NavigationManager UriHelper
+@using Microsoft.AspNetCore.SignalR.Client
+@using AutoMapper
+@inject HttpClient Http
+
+@* Hiện title của bảng *@
+@{
+    if(TableTitle!="")
+    {
+        <div class="row" style="margin-bottom:30px; margin-top: 10px">
+            <div class="col-md-12">
+                <RadzenLabel Style="text-align: center;color: rgb(10, 10, 178); font-family: 'Source Sans 3', sans-serif ; font-weight: bold; width: 100%; font-size: 25px "
+                             Text="@(TableTitle.ToUpper())">
+                </RadzenLabel>
+            </div>
+        </div>
+    }
+    else{
+        <div class="row" style="margin-bottom:30px; margin-top: 10px"></div>
+    }
+}
+
+<div style="justify-content:space-between;margin-bottom:-5px; margin-right: 1rem">
+    <div class="col-12 col-md-4" style="padding: 0px">
+        @if (HasAddButton)
+        {
+            <RadzenButton Click=@(args => AddRow()) Text="@AddBtnCaption" Disabled=@disableAdd />
+        }
+        @if (MoreButtons != null)
+        {
+            @MoreButtons
+        }
+    </div>
+    <div class="col-12" style="margin-top:1rem">
+        <RadzenDataGrid GridLines="DataGridGridLines.Both" EditMode="DataGridEditMode.Single" Data=@listData CellContextMenu="@OnCellContextMenu"
+            @ref=@GrdTable TItem="TItem" AllowColumnResize="true" PageSizeOptions="@pageSizeOptions" LoadData=@LoadData
+            IsLoading=@isLoading Count="@count" ShowPagingSummary="@showPagerSummary"
+            Style="--rz-grid-header-font-size: 1rem; --rz-grid-cell-font-size: 1rem"
+            PageSizeText="Bản ghi trên một trang" RowUpdate="@OnUpdateRow" RowCreate="@OnCreateRow"
+            EmptyText="Không có dữ liệu">
+            <Columns>
+                <RadzenDataGridColumn TItem="TItem" Title="STT" Sortable="false" Width="50px"
+                    TextAlign="TextAlign.Center">
+                    <Template Context="ctx">
+                        @(listData.IndexOf(ctx) + 1 + GrdTable.CurrentPage * GrdTable.PageSize)
+                    </Template>
+                </RadzenDataGridColumn>
+                @MoreColumns
+                <RadzenDataGridColumn TItem="TItem" Title="Thao tác" Frozen="true" FrozenPosition="FrozenColumnPosition.Right" TextAlign="TextAlign.Center" Width=@ColOperatorWith>
+                    <Template Context="ctx">
+                        @if (HasAddRowAfter)
+                        {
+                            <RadzenButton Icon="add_circle" ButtonStyle="ButtonStyle.Success" Variant="Variant.Flat" Size="ButtonSize.Small" Shade="Shade.Lighter" Click="@(() => InsertAfterRow(ctx))" />
+                        }
+                        @if (HasEditButton)
+                        {
+                            <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Small" class="rz-my-1 rz-ms-1" Click="@(args => EditRow(ctx))" @onclick:stopPropagation="true" />
+                        }
+                        @if (HasDeleteButton)
+                        {
+                            <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Flat" Size="ButtonSize.Small" Shade="Shade.Lighter" class="rz-my-1 rz-ms-1" Click="@(args => DeleteRow(ctx))" @onclick:stopPropagation="true" />
+                        }
+                    </Template>
+                    <EditTemplate Context="ctx">
+                        <RadzenButton Icon="check" ButtonStyle="ButtonStyle.Success" Variant="Variant.Flat" Size="ButtonSize.Small" Click="@((args) => SaveRow(ctx))" aria-label="Save" />
+                        <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Small" class="rz-my-1 rz-ms-1" Click="@((args) => CancelEdit(ctx))" aria-label="Cancel" />
+                        @if(HasDeleteButton)
+                        {
+                            <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Flat" Size="ButtonSize.Small" Shade="Shade.Lighter" class="rz-my-1 rz-ms-1" Click="@(args => DeleteRow(ctx))" aria-label="Delete" />
+                        }
+                        
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
+    </div>
+</div>
+@code {
+    @* Title cho bảng *@
+    [Parameter] public string TableTitle { get; set; } = "";
+    @* Title cho nút thêm mới *@
+    [Parameter] public string AddBtnCaption { get; set; } = "Thêm mới";
+    @* Có nút thêm mới *@
+    [Parameter] public bool HasAddButton { get; set; } = true;
+    @* Có nút thêm hàng sau một hàng *@
+    [Parameter] public bool HasAddRowAfter { get; set; } = true;
+    @* Có nút sửa *@
+    [Parameter] public bool HasEditButton { get; set; } = true;
+    @* Có hiện cột thao tác hay không 13/06/2024 - Nghĩa *@
+    [Parameter] public bool HasOperation { get; set; } = true;
+    @* Có hiện cột xóa hay không 13/06/2024 - Nghĩa *@
+    [Parameter] public bool HasDeleteButton { get; set; } = true;
+    @* Thêm các nút lệnh khác *@
+    [Parameter] public RenderFragment? MoreButtons { get; set; } = null;
+    @* Cấu hình query thêm *@
+    [Parameter] public string filter_query { get; set; } = default!;
+    @* Token từ ngoài truyền vào *@
+    [Parameter] public string token { get; set; } = default!;
+    @* Thêm các cột trong Datagrid *@
+    [Parameter] public RenderFragment? MoreColumns { get; set; } = null;
+    @* Cấu hình hàm gọi delete ở ngoài *@
+    [Parameter] public EventCallback<TItem> OnDelete { set; get; }
+    @* Cấu hình hàm gọi create ở ngoài *@
+    [Parameter] public EventCallback<TItem> OnCreate { set; get; }
+    @* Cấu hình hàm gọi update ở ngoài *@
+    [Parameter] public EventCallback<TItem> OnUpdate { set; get; }
+    @* Cấu hình hàm gọi cancel edit ở ngoài *@
+    [Parameter] public EventCallback<TItem> OnCancelEdit { set; get; }
+    @* Cấu hình hàm gọi lấy dữ liệu ở ngoài *@
+    [Parameter] public EventCallback<List<TItem>> OnReloadData { set; get; }
+    @* Cấu hình cho Datagrid *@
+    RadzenDataGrid<TItem> GrdTable = default!;
+    @* Tạo menu trên Table*@
+    [Parameter] public EventCallback<DataGridCellMouseEventArgs<TItem>> OnContext { set; get; }
+    [Parameter] public List<TItem> listData {set; get;} = new();
+    string pagingSummaryFormat = "Trang {0} / {1} (Tổng số {2} bản ghi)";
+    IEnumerable<int> pageSizeOptions = new int[] { 10, 20, 30 };
+    bool isLoading = false;
+    bool showPagerSummary = true;
+    int count;
+    bool datanull = false;
+    @* Disable nút thêm mới *@
+    bool disableAdd = false;
+    string ColOperatorWith = "150px";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if(HasEditButton)
+        {
+            ColOperatorWith = "110px";
+        }
+        else if (HasAddRowAfter)
+        {
+            ColOperatorWith = "130px";
+        }
+    }
+
+    async Task LoadData(LoadDataArgs args)
+    {
+        isLoading = true;
+        await Task.Yield();
+        
+        isLoading = false;
+        await OnReloadData.InvokeAsync(listData);
+    }
+    public async Task ReloadTable()
+    {
+        GrdTable.Reset(true);
+        await GrdTable.Reload();
+    }
+    protected async Task AddRow()
+    {
+        var obj = new object();
+        var config = new MapperConfiguration(cfg => cfg.CreateMap<object, TItem>());
+        IMapper mapper = config.CreateMapper();
+        TItem record = mapper.Map<TItem>(obj);
+        disableAdd = true;
+        if (listData.Count > 0)
+        {
+            await GrdTable.InsertRow(record);
+        }
+        else
+        {
+            listData.Add(record);
+            datanull = true;
+            await GrdTable.EditRow(record);
+        }
+    }
+
+    public async Task SaveRow(TItem record)
+    {
+        disableAdd = false;
+        datanull = false;
+        await GrdTable.UpdateRow(record);
+    }
+    protected async Task DeleteRow(TItem record)
+    {
+
+        if (listData.Contains(record))
+        {
+            var confirmResult = await dialog.Confirm
+            (
+            "Chắc chắn muốn xóa " + "bản ghi" + " ?",
+            "Xác nhận xoá",
+            new ConfirmOptions()
+                {
+                    OkButtonText = "Đồng ý",
+                    CancelButtonText = "Hủy",
+                    Width = "400px"
+                }
+            );
+
+            if (confirmResult.HasValue && confirmResult.Value)
+            {
+                await OnDelete.InvokeAsync(record);
+            }
+        }
+        else
+        {
+            GrdTable.CancelEditRow(record);
+        }
+        disableAdd = false;
+
+        await GrdTable.Reload();
+
+    }
+
+    protected async Task EditRow(TItem record)
+    {
+        disableAdd = true;
+        await GrdTable.EditRow(record);
+    }
+
+    protected async Task OnCreateRow(TItem record)
+    {
+        await OnCreate.InvokeAsync(record);
+    }
+
+    protected async Task OnUpdateRow(TItem record)
+    {
+        disableAdd = false;
+        if (datanull)
+        {
+            await OnCreate.InvokeAsync(record);
+        }
+        else
+        {
+            await OnUpdate.InvokeAsync(record);
+        }
+    }
+
+    protected async Task CancelEdit(TItem record)
+    {
+        disableAdd = false;
+        GrdTable.CancelEditRow(record);
+
+        await OnCancelEdit.InvokeAsync(record);
+    }
+
+    protected async Task OnCellContextMenu(DataGridCellMouseEventArgs<TItem> args)
+    {
+        await OnContext.InvokeAsync(args);
+    }
+
+    async Task InsertAfterRow(TItem row)
+    {
+        var obj = new object();
+        var config = new MapperConfiguration(cfg => cfg.CreateMap<object, TItem>());
+        IMapper mapper = config.CreateMapper();
+        TItem record = mapper.Map<TItem>(obj);
+
+        disableAdd = true;
+        await GrdTable.InsertAfterRow(record, row);
+    }
+}

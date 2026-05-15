@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <InvariantGlobalization>false</InvariantGlobalization>
+	  <!--Bật tạo file XML doc trong .csproj-->
+	  <GenerateDocumentationFile>true</GenerateDocumentationFile>
+	  <NoWarn>$(NoWarn);1591</NoWarn>
+	  <!--Hết Bật tạo file XML doc trong .csproj-->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="12.0.1" />
+    <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="12.0.1" />
+    <PackageReference Include="Dapper" Version="2.1.35" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.1" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.1" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="4.11.0" />
+	  <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.8" />
+	  <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.8" />
+
+	  <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="8.0.1" />
+    <PackageReference Include="Minio" Version="6.0.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.6" />
+    <PackageReference Include="System.DirectoryServices" Version="8.0.0" />
+	  <PackageReference Include="System.Linq.Dynamic.Core" Version="1.6.9" />
+	  <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="IDC.Backend.Servives">
+      <HintPath>..\IDC.Libs\IDC.Backend.Servives.dll</HintPath>
+    </Reference>
+    <Reference Include="IDC.Shared.Models">
+      <HintPath>..\IDC.Libs\IDC.Shared.Models.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,12 @@
+.login {
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-image: url("../background.png");
+}
+
+@media (min-width: 640px) {
+  .sm\:py-16 {
+    padding-top: 7rem;
+    padding-bottom: 7rem;
+  }
+}
