@@ -51,7 +51,7 @@ namespace SysMan.Services.IApiKCServices
             _notificationService = notificationService;
 
             // Load Keycloak configuration
-            _keycloakUrl = configuration["Keycloak:Url"] ?? "http://10.0.8.32:8080";
+            _keycloakUrl = configuration["Keycloak:Url"] ?? "http://172.17.10.77:8080";
             _realm = configuration["Keycloak:Realm"] ?? "master";
             _clientId = configuration["Keycloak:ClientId"] ?? "apim-client";
             _clientSecret = configuration["Keycloak:ClientSecret"] ?? "HgRX1EYCnHCxZaPlfRMnoxPoXssfZdWw";
