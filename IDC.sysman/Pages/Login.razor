@@ -6,7 +6,7 @@
 @inject NavigationManager UriHelper
 @inject NotificationService notificationService
 @inject AuthenticationStateProvider authStateProvider
-@inject ApiServices apiServices
+@* @inject ApiServices apiServices *@
 @* @inject ClientServices client *@
 @inject AuthenServices authServices
 @inject IJSRuntime JSRuntime
@@ -18,6 +18,8 @@
 @using System.Net.Http
 @using System.Net.Http.Headers
 @using HtmlAgilityPack;
+@using SysMan.Services.IApiKCServices
+@inject IApiKCServices apiServices
 
 <PageTitle>Đăng nhập hệ thống</PageTitle>
 <AuthorizeView>
@@ -128,7 +130,7 @@
     {
         try
         {
-            var new_post = new
+            @* var new_post = new
             {
                 Username = username,
                 Password = passwordValue // Không hash, Keycloak yêu cầu mật khẩu thật
@@ -158,6 +160,130 @@
                 notificationService.Notify(NotificationSeverity.Error, $"Thông báo:", "Sai tên đăng nhập hoặc mật khẩu người dùng",
                 duration: -1);
                 return;
+            } *@
+            // WSO2
+            if (isLoading) return;
+
+            isLoading = true;
+            // loadingMessage = "Đang xác thực...";
+            StateHasChanged();
+
+            try
+            {
+                Console.WriteLine("🔐 Starting authentication process...");
+
+                // ✅ STEP 1: GET KEYCLOAK TOKEN FROM APISERVICES
+                // loadingMessage = "Đang lấy token xác thực...";
+                StateHasChanged();
+
+                Console.WriteLine("🔑 Getting Keycloak token from ApiServices...");
+                
+                string keycloakToken = await apiServices.GetCurrentKeycloakToken();
+                
+                if (string.IsNullOrEmpty(keycloakToken))
+                {
+                    Console.WriteLine("❌ Failed to get Keycloak token from ApiServices");
+                    notificationService.Notify(NotificationSeverity.Error, "Lỗi xác thực:", "Không thể lấy token xác thực từ Keycloak", duration: -1);
+                    return;
+                }
+
+                Console.WriteLine($"✅ Got Keycloak token from ApiServices: {keycloakToken.Substring(0, 50)}...");
+
+                // ✅ STEP 2: NOW CALL api/auth/login WITH KEYCLOAK BEARER TOKEN
+                // loadingMessage = "Đang đăng nhập hệ thống...";
+                StateHasChanged();
+
+                var loginRequest = new
+                { 
+                    Username = username,
+                    Password = passwordValue 
+                };
+
+                var content = JsonContent.Create(loginRequest);
+
+                // ✅ SET KEYCLOAK BEARER TOKEN FOR api/auth/login CALL
+                Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", keycloakToken);
+
+                Console.WriteLine($"🌐 Calling api/auth/login with Keycloak Bearer token...");
+                @* Console.WriteLine(keycloakToken); *@
+                @* var response = await Http.PostAsync("api/AuthKeyCloak", content); *@
+                var handler = new HttpClientHandler
+                {
+                    // Bỏ verify SSL (chỉ dùng dev/test)
+                    ServerCertificateCustomValidationCallback =
+                        HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+                };
+                var client = new HttpClient(handler)
+                {
+                    BaseAddress = new Uri("https://10.0.8.32:7239/")
+                };
+
+                var response = await client.PostAsync("api/AuthKeyCloak", content);
+                var result = await response.Content.ReadAsStringAsync();
+
+                Console.WriteLine($"Response: {result}");
+                Console.WriteLine($"📡 Login API Response: {response.StatusCode}");
+
+                ServiceResponse<string> data = new ServiceResponse<string>();
+                data.Data = "none";
+
+                if (response.IsSuccessStatusCode)
+                {
+                    @* var rawResponse = await response.Content.ReadAsStringAsync();
+
+Console.WriteLine("📦 RAW RESPONSE:");
+Console.WriteLine(rawResponse); *@
+                    // Đọc token từ API
+                    @* var tokenResponse = await response.Content.ReadFromJsonAsync<TokenResponse>(); *@
+                    @* Console.WriteLine(tokenResponse); *@
+                    
+                    @* token = tokenResponse?.Access_token ?? ""; *@
+                    token = await response.Content.ReadAsStringAsync();
+                    if (string.IsNullOrEmpty(token))
+                    {
+                        notificationService.Notify(NotificationSeverity.Error, $"Thông báo:", "Không nhận được Access Token", duration: -1);
+                        return;
+                    }else {
+                        if(!AppCallbackPage.Contains("?"))
+                            UriHelper.NavigateTo(AppCallbackPage + $"?token={token}", forceLoad: true);
+                        else {
+                            UriHelper.NavigateTo(AppCallbackPage + $"&token={token}", forceLoad: true);
+                        }
+                    }
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"❌ Login failed: {response.StatusCode} - {errorContent}");
+
+                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                    {
+                        notificationService.Notify(NotificationSeverity.Error, "Lỗi đăng nhập:", "Sai tên đăng nhập hoặc mật khẩu", duration: -1);
+                    }
+                    else
+                    {
+                        notificationService.Notify(NotificationSeverity.Error, "Lỗi hệ thống:", $"Lỗi đăng nhập: {response.StatusCode}", duration: -1);
+                    }
+                }
+            }
+            catch (UnauthorizedAccessException authEx)
+            {
+                Console.WriteLine($"❌ Keycloak authentication failed: {authEx.Message}");
+                notificationService.Notify(NotificationSeverity.Error, "Lỗi xác thực:", "Không thể xác thực với Keycloak. Vui lòng kiểm tra cấu hình.", duration: -1);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Exception during authentication: {ex.Message}");
+                notificationService.Notify(NotificationSeverity.Error, "Lỗi:", "Đã có lỗi xảy ra trong quá trình đăng nhập", duration: -1);
+            }
+            finally
+            {
+                // Clear the Authorization header to avoid affecting other HttpClient calls
+                Http.DefaultRequestHeaders.Authorization = null;
+                
+                isLoading = false;
+                // loadingMessage = "Đang đăng nhập...";
+                StateHasChanged();
             }
             return;
         }

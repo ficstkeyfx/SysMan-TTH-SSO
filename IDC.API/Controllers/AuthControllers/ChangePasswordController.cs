@@ -22,8 +22,8 @@ namespace api.Controllers
         //public ChangePasswordController(HttpClient httpClient)
         //{
         //    _httpClient = httpClient;
-        //    _keycloakUrl = "http://10.0.26.54:8080";
-        //    _realm = "test_client";
+        //    _keycloakUrl = "http://10.0.8.32:8080";
+        //    _realm = "TestSSO";
         //    _clientId = "TestSSO";
         //    _clientSecret = "XQ70pctA5bqZAwZWbMRV52uVsjv50rHf";
         //    _adminUsername = "admin";

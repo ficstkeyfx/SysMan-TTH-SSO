@@ -65,6 +65,8 @@ builder.Services.AddScoped<NumServices>();
 builder.Services.AddScoped<IHttpServices, HttpServices>();
 builder.Services.AddScoped<HttpServices>();
 builder.Services.AddScoped<IClientServices, ClientServices>();
+builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
+
 builder.Services.AddScoped<ClientServices>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();

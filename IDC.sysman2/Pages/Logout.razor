@@ -1,13 +1,37 @@
 @page "/logout"
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 
 @inject AuthenticationStateProvider authStateProvider
 @inject NavigationManager UriHelper
+@inject ProtectedLocalStorage ProtectedStorage
+
 @attribute [Authorize]
 @code {
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         var customAuthStateProvider = (CustomAuthenticationStateProvider)authStateProvider;
+        await ProtectedStorage.DeleteAsync("access_token");
+        await ProtectedStorage.DeleteAsync("refresh_token");
+        await ProtectedStorage.DeleteAsync("expires_at");
+        await ProtectedStorage.DeleteAsync("dateExpire");
+        await ProtectedStorage.DeleteAsync("userId");
         await customAuthStateProvider.UpdateAuthenticationState(null);
-        UriHelper.NavigateTo("/", true);
+        var currentUri = new Uri(UriHelper.Uri);
+        var logout =
+            $"{currentUri.Scheme}://{currentUri.Host}:5105/logout" +
+            $"?returnUrl={Uri.EscapeDataString($"{currentUri.Scheme}://{currentUri.Host}:{currentUri.Port}/")}";
+
+        UriHelper.NavigateTo(logout, true);
+    }
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? returnUrl { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (!string.IsNullOrEmpty(returnUrl))
+        {
+            UriHelper.NavigateTo(returnUrl, true);
+        }
     }
 }

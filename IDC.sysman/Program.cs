@@ -25,7 +25,7 @@ using SysMan.Services.LDapServices;
 using SysMan.Services.LinkService;
 using Radzen;
 using System.Net.Http.Headers;
-
+using SysMan.Services.IApiKCServices;
 
 var builder = WebApplication.CreateBuilder(args);
 IConfigurationRoot configuration = new ConfigurationBuilder()
@@ -51,9 +51,10 @@ builder.Services.AddScoped<LinkService>();
 builder.Services.AddScoped<LdapUserService>();
 builder.Services.AddScoped<DialogService>();
 builder.Services.AddSingleton<ExchangeProvisioner>();
+
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<ITokenService,TokenService>();
-
+builder.Services.AddScoped<IApiKCServices,ApiKCServices>();
 builder.Services.AddScoped<AuthenServices>();
 builder.Services.AddScoped<IAuthenServices,AuthenServices>();
 builder.Services.AddScoped<IApiServices, ApiServices>();
@@ -61,6 +62,7 @@ builder.Services.AddScoped<ILinkService, LinkService>();
 builder.Services.AddScoped<ITvfServices, TvfServices>();
 builder.Services.AddScoped<TvfServices>();
 builder.Services.AddScoped<INumServices, NumServices>();
+builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
 builder.Services.AddScoped<NumServices>();
 builder.Services.AddScoped<IHttpServices, HttpServices>();
 builder.Services.AddScoped<HttpServices>();
