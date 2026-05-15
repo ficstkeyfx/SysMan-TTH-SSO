@@ -1,4 +1,4 @@
-﻿using api.UserSync;
+﻿// using api.UserSync;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System.IdentityModel.Tokens.Jwt;
@@ -8,6 +8,7 @@ using System.Text;
 using Newtonsoft.Json;
 using System.Net.Http.Headers;
 using Microsoft.AspNetCore.Mvc;
+using api.Controllers.AuthControllers;
 namespace api.Services.KeyCloakServices
 {
     public class KeycloakService:IKeyCloakService
@@ -18,7 +19,7 @@ namespace api.Services.KeyCloakServices
                   .Build();
 
         private static SqlConnection _db;
-        private readonly ILogger<UsersController> _logger;
+        private readonly ILogger<KeycloakService> _logger;
         private string _keycloakUrl= $"http://10.0.26.54:8080";
         private string _realm= $"test_client";
         private string _clientId= $"TestSSO";
@@ -26,7 +27,7 @@ namespace api.Services.KeyCloakServices
         private string _adminUsername= $"admin";
         private string _adminPassword = $"admin";
 
-        public KeycloakService(SqlConnection db, ILogger<UsersController> logger)
+        public KeycloakService(SqlConnection db, ILogger<KeycloakService> logger)
         {
             _db = db;
             _logger= logger;
