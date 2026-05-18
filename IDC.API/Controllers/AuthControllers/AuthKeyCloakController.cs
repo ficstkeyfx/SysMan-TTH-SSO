@@ -35,7 +35,7 @@ namespace api.SsoKeyCloak
 
     //    public async Task<TokenResponse?> GetTokenAsync(string username, string password)
     //    {
-    //        var tokenEndpoint = "http://10.0.8.32:8080/realms/TestSSO/protocol/openid-connect/token";
+    //        var tokenEndpoint = "http://172.17.10.77:8080/realms/TestSSO/protocol/openid-connect/token";
 
     //        var parameters = new Dictionary<string, string>
     //        {

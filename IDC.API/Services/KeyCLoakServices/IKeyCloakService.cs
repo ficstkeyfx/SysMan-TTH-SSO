@@ -50,6 +50,8 @@ namespace api.Services.KeyCloakServices
         Task<bool> EnableUser(string userId);
         Task<bool> ValidateUserInfo(ResetPasswordRequest request);
         Task<bool> ResetPassword(string username, string newPassword);
+        // Phương thức cập nhật thông tin người dùng
+        Task<bool> UpdateUser(string userId, string email, string firstName, string lastName, string adminToken);
     }
 
     public class LoginModel
@@ -111,6 +113,14 @@ namespace api.Services.KeyCloakServices
         public bool EmailVerified { get; set; } = false;
         public List<KeycloakCredential> Credentials { get; set; } = new();
     }
+    public class ChangeUserRequest
+    {
+        public string Username { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+    }
 
     public class KeycloakCredential
     {
@@ -162,8 +172,6 @@ namespace api.Services.KeyCloakServices
     {
         public string Username { get; set; }
         public string Email { get; set; }
-        public string SDT { get; set; }
-        public string CCCD { get; set; }
         public string NewPassword { get; set; }  // 🔹 Nhận mật khẩu từ client
     }
 
