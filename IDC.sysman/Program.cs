@@ -62,7 +62,6 @@ builder.Services.AddScoped<ILinkService, LinkService>();
 builder.Services.AddScoped<ITvfServices, TvfServices>();
 builder.Services.AddScoped<TvfServices>();
 builder.Services.AddScoped<INumServices, NumServices>();
-builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
 builder.Services.AddScoped<NumServices>();
 builder.Services.AddScoped<IHttpServices, HttpServices>();
 builder.Services.AddScoped<HttpServices>();

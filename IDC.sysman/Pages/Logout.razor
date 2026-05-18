@@ -1,32 +1,56 @@
 @page "/logout"
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@using Microsoft.AspNetCore.Components.Authorization
+@using IDC.Frontend.Services
 
 @inject AuthenticationStateProvider authStateProvider
 @inject NavigationManager UriHelper
 @inject ProtectedLocalStorage ProtectedStorage
+@inject ProtectedSessionStorage ProtectedSession
 
 @attribute [Authorize]
 @code {
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        var customAuthStateProvider = (CustomAuthenticationStateProvider)authStateProvider;
-        await ProtectedStorage.DeleteAsync("access_token");
-        await ProtectedStorage.DeleteAsync("refresh_token");
-        await ProtectedStorage.DeleteAsync("expires_at");
-        await ProtectedStorage.DeleteAsync("dateExpire");
-        await ProtectedStorage.DeleteAsync("userId");
-        await customAuthStateProvider.UpdateAuthenticationState(null);
-        UriHelper.NavigateTo("/", true);
-    }
     [Parameter]
     [SupplyParameterFromQuery]
     public string? returnUrl { get; set; }
 
-    protected override void OnInitialized()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!string.IsNullOrEmpty(returnUrl))
+        if (!firstRender)
+            return;
+
+        try
         {
-            UriHelper.NavigateTo(returnUrl, true);
+            await ProtectedStorage.DeleteAsync("token");
+            await ProtectedStorage.DeleteAsync("access_token");
+            await ProtectedStorage.DeleteAsync("refresh_token");
+            await ProtectedStorage.DeleteAsync("expires_at");
+            await ProtectedStorage.DeleteAsync("dateExpire");
+            await ProtectedStorage.DeleteAsync("userId");
+
+            await ProtectedSession.DeleteAsync("token");
+            await ProtectedSession.DeleteAsync("dateExpire");
+            await ProtectedSession.DeleteAsync("userId");
+
+            if (authStateProvider is CustomAuthenticationStateProvider customAuthProvider)
+            {
+                await customAuthProvider.UpdateAuthenticationState(null);
+            }
+
+            var postLogoutRedirectUri = string.IsNullOrEmpty(returnUrl) 
+                ? UriHelper.BaseUri 
+                : UriHelper.ToAbsoluteUri(returnUrl).ToString();
+
+            var keycloakLogoutUrl = $"http://10.0.8.32:8080/realms/TestSSO/protocol/openid-connect/logout" +
+                                    $"?client_id=TestSSO" +
+                                    $"&post_logout_redirect_uri={Uri.EscapeDataString(postLogoutRedirectUri)}";
+
+            UriHelper.NavigateTo(keycloakLogoutUrl, true);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+            UriHelper.NavigateTo("/", true);
         }
     }
 }
