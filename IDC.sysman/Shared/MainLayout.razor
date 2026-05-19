@@ -20,8 +20,8 @@
 <RadzenContextMenu />
 <RadzenTooltip />
 
-<PageTitle>Quản lý người dùng</PageTitle>
 
+<PageTitle>Quản lý người dùng</PageTitle>
 <LoadingIndicator IsLoading="@isLoading" />
 
 
@@ -149,7 +149,7 @@
         isSidebarClosed = !isSidebarClosed;
     }
 
-    protected override async Task OnInitializedAsync()
+     protected override async Task OnInitializedAsync()
     {
 
         // Mở trạng thái Loading
@@ -199,9 +199,7 @@
 
         // Đóng trạng thái Loading
         isLoading = false;
-    }
-        
-        
+    }       
 
     protected void onClickMenu(int id)
     {
@@ -213,7 +211,7 @@
         dictFocus[id] = true;
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender && tokenService.Token == null)
         {
@@ -234,5 +232,5 @@
                 StateHasChanged(); // nếu cần reload UI
             }
         }
-    }
+    } 
 }

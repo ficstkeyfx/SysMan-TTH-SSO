@@ -24,9 +24,11 @@ builder.Services.AddControllers();
 builder.Services.AddScoped<IKeyCloakService, KeycloakService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddAutoMapper(typeof(Program));
+// ✅ Bước 1: Sửa lại OutputCache - bỏ base policy cache mặc định
 builder.Services.AddOutputCache(options =>
 {
-    options.AddBasePolicy(builder => builder.Expire(TimeSpan.FromSeconds(120)));
+    // Xóa dòng AddBasePolicy cache 120s đi
+    // options.AddBasePolicy(builder => builder.Expire(TimeSpan.FromSeconds(120)));
 });
 
 
@@ -70,6 +72,17 @@ app.UseAuthentication();
 
 app.UseAuthorization();
 app.MapControllers();
+
+// ✅ Bước 2: Đặt middleware no-cache TRƯỚC UseOutputCache
+app.Use(async (context, next) =>
+{
+    context.Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
+    context.Response.Headers["Pragma"] = "no-cache";
+    context.Response.Headers["Expires"] = "0";
+    await next();
+});
+
+app.UseOutputCache(); // phải sau middleware trên
 
 app.Run();
 

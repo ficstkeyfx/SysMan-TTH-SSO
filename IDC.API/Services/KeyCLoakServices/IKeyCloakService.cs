@@ -11,6 +11,8 @@ namespace api.Services.KeyCloakServices
         // Phương thức lấy thông tin token của một người dùng
         Task<TokenResponse?> GetUserTokenInfo(string username, string password);
 
+        // Phương thức xóa cache realm để cập nhật thông tin người dùng mới nhất
+        Task ClearRealmCache(string adminToken);
 
         // Phương thức lấy Access Token của người dùng
         Task<string> GetUserAccessToken(string username, string password);
@@ -68,6 +70,16 @@ namespace api.Services.KeyCloakServices
         public string Token_type { get; set; }
     }
 
+    public class KeycloakUserInfo
+    {
+        public string Id        { get; set; }
+        public string Username  { get; set; }
+        public string FirstName { get; set; }
+        public string LastName  { get; set; }
+        public string Email     { get; set; }
+        public bool   Enabled   { get; set; }  // false = đang bị khóa
+    }
+
     public class ChangePasswordWithUserModel
     {
         public string Username { get; set; }
@@ -116,7 +128,6 @@ namespace api.Services.KeyCloakServices
     public class ChangeUserRequest
     {
         public string Username { get; set; } = string.Empty;
-        public string Password { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
@@ -167,6 +178,10 @@ namespace api.Services.KeyCloakServices
     {
         public string Username { get; set; }
         public string Name { get; set; }
+        public string Email { get; set; }   // thêm email
+        public bool   Enabled  { get; set; }
+
+
     }
     public class ResetPasswordRequest
     {

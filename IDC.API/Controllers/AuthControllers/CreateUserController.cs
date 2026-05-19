@@ -19,26 +19,27 @@ namespace api.SsoKeyCloak
         }
 
         [HttpPost]
+        [HttpPost]
         public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request)
         {
             if (!ModelState.IsValid)
-            {
                 return BadRequest(ModelState);
-            }
 
-            // Check if user already exists
-            var userExists = await _keycloakRepo.CheckUserExists(request.Username);
-            if (userExists)
-            {
-                return Conflict(new { Message = "User with this username already exists" });
-            }
+            // ✅ Check username trùng
+            var usernameExists = await _keycloakRepo.CheckUserExists(request.Username);
+            if (usernameExists)
+                return Conflict(new { field = "username", message = $"Tên đăng nhập '{request.Username}' đã được sử dụng" });
+
+            // ✅ Check email trùng
+            var users = await _keycloakRepo.GetUsers();
+            var emailExists = users?.Any(u => u.Email.Equals(request.Email, StringComparison.OrdinalIgnoreCase)) ?? false;
+            if (emailExists)
+                return Conflict(new { field = "email", message = $"Email '{request.Email}' đã được sử dụng" });
 
             var result = await _keycloakRepo.CreateUser(request);
 
             if (result.Success)
-            {
                 return CreatedAtAction(nameof(CreateUser), new { id = result.UserId }, result);
-            }
 
             return BadRequest(result);
         }

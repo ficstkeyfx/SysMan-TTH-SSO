@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using api.Controllers.AuthControllers;
 namespace api.Services.KeyCloakServices
 {
-    public class KeycloakService:IKeyCloakService
+    public class KeycloakService : IKeyCloakService
     {
         IConfigurationRoot configuration = new ConfigurationBuilder()
                   .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
@@ -20,17 +20,17 @@ namespace api.Services.KeyCloakServices
 
         private static SqlConnection _db;
         private readonly ILogger<KeycloakService> _logger;
-        private string _keycloakUrl= $"http://192.168.93.198:8080";
-        private string _realm= $"TestSSO";
-        private string _clientId= $"TestSSO";
-        private string _clientSecret=$"eow12rrq9YQqERnTPKabxpmU1QDyYsGG";
-        private string _adminUsername= $"admin";
+        private string _keycloakUrl = $"http://192.168.93.198:8080";
+        private string _realm = $"TestSSO";
+        private string _clientId = $"TestSSO";
+        private string _clientSecret = $"XsSps46oZSEvYbYJR3oQuIg57vffKYZH";
+        private string _adminUsername = $"admin";
         private string _adminPassword = $"admin";
 
         public KeycloakService(SqlConnection db, ILogger<KeycloakService> logger)
         {
             _db = db;
-            _logger= logger;
+            _logger = logger;
 
         }
 
@@ -239,43 +239,66 @@ namespace api.Services.KeyCloakServices
         public async Task<List<UserDto>> GetUsers()
         {
             var token = await GetAdminAccessToken();
-            if (token == null) return null; //Unauthorized("Cannot get admin token");
-
-            //var usersEndpoint = $"{_baseUrl}/admin/realms/{_realm}/users";
+            if (token == null) return null;
 
             string apiUrl = _keycloakUrl;
-            string apiRoute = $"/admin/realms/{_realm}/users";
+            string apiRoute = $"/admin/realms/{_realm}/users?briefRepresentation=false&max=1000&_={DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
 
             using var _httpClient = new HttpClient
             {
                 BaseAddress = new Uri(configuration.GetConnectionString(apiUrl) ?? apiUrl)
             };
 
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            _httpClient.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", token);
+            _httpClient.DefaultRequestHeaders.CacheControl = new System.Net.Http.Headers.CacheControlHeaderValue
+            {
+                NoCache = true,
+                NoStore = true
+            };
+            _httpClient.DefaultRequestHeaders.Add("Pragma", "no-cache");
 
             var response = await _httpClient.GetAsync(apiRoute);
-            if (!response.IsSuccessStatusCode)
-            {
-                return null;// StatusCode((int)response.StatusCode, "Failed to fetch users");
-            }
+            if (!response.IsSuccessStatusCode) return null;
 
             var usersJson = await response.Content.ReadFromJsonAsync<JsonElement>();
-
             var users = new List<UserDto>();
+
             foreach (var u in usersJson.EnumerateArray())
             {
                 var username = u.TryGetProperty("username", out var usr) ? usr.GetString() : "";
                 var firstName = u.TryGetProperty("firstName", out var fn) ? fn.GetString() : "";
                 var lastName = u.TryGetProperty("lastName", out var ln) ? ln.GetString() : "";
+                var email = u.TryGetProperty("email", out var em) ? em.GetString() : "";
+                var enabled = !u.TryGetProperty("enabled", out var en) || en.GetBoolean();
 
                 users.Add(new UserDto
                 {
                     Username = username ?? "",
-                    Name = $"{firstName} {lastName}".Trim()
+                    Name = $"{firstName} {lastName}".Trim(),
+                    Email = email ?? "",
+                    Enabled = enabled
                 });
             }
 
             return users;
+        }
+
+        public async Task ClearRealmCache(string adminToken)
+        {
+            string apiUrl = _keycloakUrl;
+            string apiRoute = $"/admin/realms/{_realm}/clear-caches";
+
+            using var _httpClient = new HttpClient
+            {
+                BaseAddress = new Uri(configuration.GetConnectionString(apiUrl) ?? apiUrl)
+            };
+
+            _httpClient.DefaultRequestHeaders.Clear();
+            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {adminToken}");
+
+            // Keycloak API để clear user cache
+            await _httpClient.PostAsync($"/admin/realms/{_realm}/clear-user-cache", null);
         }
 
         /// <summary>
@@ -493,7 +516,7 @@ namespace api.Services.KeyCloakServices
             return response.IsSuccessStatusCode;
         }
 
-        
+
 
         /// <summary>
         /// Phương thức Disable một người dùng
@@ -616,9 +639,9 @@ namespace api.Services.KeyCloakServices
 
             var payload = new
             {
-                email     = email,
+                email = email,
                 firstName = firstName,
-                lastName  = lastName
+                lastName = lastName
             };
 
             var json = System.Text.Json.JsonSerializer.Serialize(payload);

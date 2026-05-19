@@ -26,7 +26,17 @@ namespace api.Controllers
                 if (!users.Any())
                     return Ok(new { message = "Không có người dùng nào", data = users });
 
-                return Ok(new { message = "Lấy danh sách thành công", total = users.Count, data = users });
+                // Map sang DTO có thêm isLocked
+                var data = users.Select(u => new
+                {
+                    u.Username,
+                    u.Name,
+                    u.Email,
+                    u.Enabled,
+                    IsLocked = !u.Enabled   // enabled=false → isLocked=true
+                });
+
+                return Ok(new { message = "Lấy danh sách thành công", total = users.Count, data });
             }
             catch (Exception ex)
             {
@@ -43,7 +53,19 @@ namespace api.Controllers
                 if (user == null)
                     return NotFound(new { message = $"Không tìm thấy tài khoản '{username}'" });
 
-                return Ok(new { message = "Lấy thông tin thành công", data = user });
+                return Ok(new
+                {
+                    message = "Lấy thông tin thành công",
+                    data = new
+                    {
+                        user.Username,
+                        user.FirstName,
+                        user.LastName,
+                        user.Email,
+                        user.Enabled,
+                        IsLocked = !user.Enabled
+                    }
+                });
             }
             catch (Exception ex)
             {

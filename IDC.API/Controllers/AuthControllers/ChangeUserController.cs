@@ -19,27 +19,33 @@ namespace api.Controllers
         {
             try
             {
-                // 1. Validate email bắt buộc
+                if (string.IsNullOrWhiteSpace(request.Username))
+                    return BadRequest(new { message = "Tên đăng nhập là bắt buộc" });
+
                 if (string.IsNullOrWhiteSpace(request.Email))
                     return BadRequest(new { message = "Email là bắt buộc" });
 
-                // 2. Xác thực username + password
-                var userToken = await _keycloakRepo.GetUserAccessToken(request.Username, request.Password);
-                if (userToken == null)
-                    return Unauthorized(new { message = "Tên đăng nhập hoặc mật khẩu không đúng" });
-
-                // 3. Lấy Admin Token
                 var adminToken = await _keycloakRepo.GetAdminAccessToken();
                 if (adminToken == null)
                     return StatusCode(500, new { message = "Không thể lấy quyền quản trị" });
 
-                // 4. Lấy userId
                 var userId = await _keycloakRepo.GetUserId(request.Username, adminToken);
                 if (string.IsNullOrEmpty(userId))
-                    return NotFound(new { message = "Không tìm thấy tài khoản" });
+                    return NotFound(new { message = $"Không tìm thấy tài khoản '{request.Username}'" });
 
-                // 5. Cập nhật thông tin
-                var success = await _keycloakRepo.UpdateUser(userId, request.Email, request.FirstName, request.LastName, adminToken);
+                // ✅ Check email trùng với user KHÁC (không phải chính user đang edit)
+                var users = await _keycloakRepo.GetUsers();
+                var emailExists = users?.Any(u =>
+                    u.Email.Equals(request.Email, StringComparison.OrdinalIgnoreCase) &&
+                    !u.Username.Equals(request.Username, StringComparison.OrdinalIgnoreCase)
+                ) ?? false;
+
+                if (emailExists)
+                    return Conflict(new { field = "email", message = $"Email '{request.Email}' đã được sử dụng bởi tài khoản khác" });
+
+                var success = await _keycloakRepo.UpdateUser(
+                    userId, request.Email, request.FirstName, request.LastName, adminToken);
+
                 if (success)
                     return Ok(new { message = "Cập nhật thông tin thành công" });
 

@@ -1,12 +1,11 @@
 @page "/home"
 @inject NavigationManager UriHelper
 
-<AuthorizeView>
-    <Authorized>
+ <AuthorizeView>
+    <NotAuthorized>
         <p>You are not authorized to view this content.</p>
-    </Authorized>
+    </NotAuthorized>
 </AuthorizeView>
-
 @code {
     [CascadingParameter] private Task<AuthenticationState> authenticationState { get; set; } = default!;
 

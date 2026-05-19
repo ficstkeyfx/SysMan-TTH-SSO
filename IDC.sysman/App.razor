@@ -1,25 +1,4 @@
 ﻿@using SysMan.Pages
-@* <CascadingAuthenticationState>
-    <Router AppAssembly="@typeof(App).Assembly">
-        <Found Context="routeData">
-
-            @* <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
-                <NotAuthorized>
-                    <RedirectToLogin />
-                </NotAuthorized>
-                <Authorizing>
-                    <Loading />
-                </Authorizing>
-            </AuthorizeRouteView>
-            <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
-
-            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
-        </Found>
-        <NotFound>
-            <RedirectToHome />
-        </NotFound>
-    </Router>
-</CascadingAuthenticationState> *@
 <CascadingAuthenticationState>
     <Router AppAssembly="@typeof(App).Assembly">
         <Found Context="routeData">

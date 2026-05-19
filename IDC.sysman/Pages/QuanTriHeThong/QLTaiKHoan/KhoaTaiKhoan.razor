@@ -3,11 +3,15 @@
 @using IDC.Frontend.Services
 @using IDC.Shared.Models
 @using SysMan.Models
-
 @using SysMan.Components
+@using System.Net.Http.Json
+@using System.Text.Json
+
 @inject NavigationManager UriHelper
 @inject NotificationService notificationService
 @inject ClientServices client
+@inject HttpClient Http
+
 <style>
     .rz-label {
         margin-bottom: 0;
@@ -19,61 +23,202 @@
     }
 </style>
 
-<InlineAPI @ref=grd TItem="tbSoftwareUser" TableTitle="DANH SÁCH NGƯỜI DÙNG" query=@query
-           HasAddButton=false HasAddRowAfter=false HasDeleteButton=false
-           OnUpdate="(data => Update((tbSoftwareUser)data))">
-    <MoreColumns>
-        <RadzenDataGridColumn TItem="tbSoftwareUser" Title="Tên tài khoản" TextAlign="TextAlign.Left" Sortable="false"
-                              Width="200px" Property="UserName" Frozen="true">
-        </RadzenDataGridColumn>
-        <RadzenDataGridColumn TItem="tbSoftwareUser" Title="Họ và tên người dùng" TextAlign="TextAlign.Left" Sortable="false"
-                              Width="100%" Property="FullName" Frozen="true">
-        </RadzenDataGridColumn>
-            @*@<RadzenDataGridColumn TItem="tbSoftwareUser" Property="LockoutEnabled" Title="Khóa tài khoản" TextAlign="TextAlign.Center" Sortable="false"
-                                  Filterable="false" Width="170px">
-                <Template Context="ctx">
-                <RadzenCheckBox @bind-Value="ctx.KhoaTaiKhoan" Disabled="true" TValue="bool" />
+@if (isLoading)
+{
+    <div style="text-align:center; padding: 40px;">
+        <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate"
+                                   Size="ProgressBarCircularSize.Medium" />
+        <p style="margin-top:12px; color: #888;">Đang tải danh sách người dùng...</p>
+    </div>
+}
+else
+{
+    <RadzenDataGrid Data="@lstUser" TItem="UserRow" AllowSorting="true" AllowFiltering="true" AllowPaging="true"
+                    PageSize="20" GridLines="DataGridGridLines.Both" Style="width:100%">
+        <HeaderTemplate>
+            <div style="display:flex; align-items:center; width:100%; padding:8px 0;">
+                <strong style="font-size:1.05rem; min-width:250px;">DANH SÁCH NGƯỜI DÙNG</strong>
+                <div style="flex:1; display:flex; justify-content:center;">
+                    <RadzenButton Icon="refresh" Text="Tải lại" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
+                                  Click="LoadUsers" />
+                </div>
+            </div>
+        </HeaderTemplate>
+        <Columns>
+            <RadzenDataGridColumn TItem="UserRow" Title="STT" TextAlign="TextAlign.Center" Width="70px" Sortable="false" Filterable="false" Frozen="true">
+
+                 <Template Context="row">
+                    @(lstUser.IndexOf(row) + 1)
                 </Template>
-            <EditTemplate Context="ctx">
-                <RadzenCheckBox @bind-Value="ctx.KhoaTaiKhoan" Disabled="false" TValue="bool" />
-                </EditTemplate>
-            </RadzenDataGridColumn> *@
-    </MoreColumns>
-</InlineAPI>
+
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="UserRow" Title="Tên tài khoản" TextAlign="TextAlign.Center" Width="180px"
+                                  Property="Username" Frozen="true" />
+
+            <RadzenDataGridColumn TItem="UserRow" Title="Họ và tên" TextAlign="TextAlign.Center" Width="220px"
+                                  Property="Name" />
+
+            <RadzenDataGridColumn TItem="UserRow" Title="Email" TextAlign="TextAlign.Center" Width="100%" Property="Email" />
+
+            <RadzenDataGridColumn TItem="UserRow" Title="Trạng thái" Width="130px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                <Template Context="row">
+                    @if (row.IsLocked)
+                    {
+                        <RadzenBadge Text="Đã khóa" BadgeStyle="BadgeStyle.Danger" />
+                    }
+                    else
+                    {
+                        <RadzenBadge Text="Hoạt động" BadgeStyle="BadgeStyle.Success" />
+                    }
+                </Template>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn TItem="UserRow" Title="Hành động" Width="150px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                <Template Context="row">
+                    @if (row.ActionLoading)
+                    {
+                        <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate"
+                                                   Size="ProgressBarCircularSize.ExtraSmall" />
+                    }
+                    else if (row.IsLocked)
+                    {
+                        <RadzenButton Icon="lock_open" Text="Mở khóa" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
+                                      Click="@(() => ToggleLock(row))" />
+                    }
+                    else
+                    {
+                        <RadzenButton Icon="lock" Text="Khóa" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small"
+                                      Click="@(() => ToggleLock(row))" />
+                    }
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+}
 
 @code {
-    List<tbSoftwareUser> lstUser;
-    InlineAPI<tbSoftwareUser> grd;
-    string query;
-    tbSoftwareUser user = new tbSoftwareUser();
-    List<TypeDrop> lstNhom = new List<TypeDrop>();
+    // Model nội bộ — KHÔNG phải nested class của Radzen nên đặt tên rõ ràng
+    public class UserRow
+    {
+        public string Username { get; set; }
+        public string Name { get; set; }
+        public string Email { get; set; }
+        public bool IsLocked { get; set; }
+        public bool ActionLoading { get; set; } // spinner riêng từng dòng
+    }
+
+    private const string ApiBaseUrl = "http://localhost:5240";
+
+    List<UserRow> lstUser = new();
+    bool isLoading = true;
+
     protected override async Task OnInitializedAsync()
     {
-        //lstNhom = dbContext.tbNhoms.Select(p => new TypeDrop { Name = p.TenNhom, Id = p.IdNhom }).ToList();
-        query = "api/user/getallpaged";
-        //query = dbContext.tbSoftwareUsers.AsQueryable();
+        await LoadUsers();
     }
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+
+    private async Task LoadUsers()
     {
-        if (firstRender == true)
+        isLoading = true;
+        StateHasChanged();
+
+        try
         {
-            // query = dbContext.tbSoftwareUsers.AsNoTracking().AsQueryable();
-            // await grd.ForceRefresh(query);
+            var response = await Http.GetAsync($"{ApiBaseUrl}/api/GetListUser");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var root = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(content, options);
+
+                lstUser = new List<UserRow>();
+
+                if (root.TryGetProperty("data", out var dataArr) && dataArr.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var item in dataArr.EnumerateArray())
+                    {
+                        lstUser.Add(new UserRow
+                        {
+                            Username = item.TryGetProperty("username", out var u) ? u.GetString() ?? "" : "",
+                            Name = item.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "",
+                            Email = item.TryGetProperty("email", out var e) ? e.GetString() ?? "" : "",
+                            IsLocked = item.TryGetProperty("isLocked", out var l) && l.GetBoolean()
+                        });
+                    }
+                }
+
+                if (!lstUser.Any())
+                    notificationService.Notify(NotificationSeverity.Info, "Không có người dùng nào", null, duration: 2000);
+            }
+            else
+            {
+                notificationService.Notify(NotificationSeverity.Error, "Không thể tải danh sách người dùng", null, duration: 3000);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[KhoaTaiKhoan] LoadUsers: {ex.Message}");
+            notificationService.Notify(NotificationSeverity.Error, "Lỗi kết nối đến máy chủ", null, duration: 3000);
+        }
+        finally
+        {
+            isLoading = false;
             StateHasChanged();
         }
     }
-    protected async Task Update(tbSoftwareUser record)
+
+    // Xử lý khóa / mở khóa — cập nhật trực tiếp trên dòng, không reload cả bảng
+    private void ToggleLock(UserRow row)
     {
+        _ = ToggleLockAsync(row);
+    }
+
+    private async Task ToggleLockAsync(UserRow row)
+    {
+        isLoading = true;
+        StateHasChanged();
+
         try
         {
-            // dbContext.tbSoftwareUsers.Update(record);
-            // await dbContext.SaveChangesAsync();
-            await grd.ReloadTable();
-            notificationService.Notify(NotificationSeverity.Success, "Cập nhật thành công", null, duration: 2000);
+            var endpoint = row.IsLocked
+                ? $"{ApiBaseUrl}/api/LockAccount/unlock/{row.Username}"
+                : $"{ApiBaseUrl}/api/LockAccount/lock/{row.Username}";
+
+            var response = await Http.PostAsync(endpoint, null);
+
+            if (response.IsSuccessStatusCode)
+            {
+                // Đổi trạng thái ngay trên dòng, không cần gọi lại toàn bộ API
+                row.IsLocked = !row.IsLocked;
+
+                var msg = row.IsLocked ? $"Đã khóa tài khoản {row.Username}"
+                                       : $"Đã mở khóa tài khoản {row.Username}";
+                notificationService.Notify(NotificationSeverity.Success, "Thành công", msg, duration: 2000);
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                string errorMsg = row.IsLocked ? "Không thể mở khóa tài khoản" : "Không thể khóa tài khoản";
+
+                try
+                {
+                    var errorObj = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(errorContent);
+                }
+                catch { }
+
+                notificationService.Notify(NotificationSeverity.Error, "Lỗi", errorMsg, duration: 3000);
+            }
         }
-        catch
+        catch (Exception ex)
         {
-            notificationService.Notify(NotificationSeverity.Error, "Lỗi khi lưu dữ liệu", null, duration: -1);
+            Console.WriteLine($"[KhoaTaiKhoan] ToggleLock: {ex.Message}");
+            notificationService.Notify(NotificationSeverity.Error, "Lỗi", "Không thể kết nối đến máy chủ", duration: 3000);
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
         }
     }
 }

@@ -1,264 +1,88 @@
 @page "/callback"
-@page "/"
 @layout LoginLayout
-@using Microsoft.AspNetCore.WebUtilities
-@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
-@inject NavigationManager Navigation
-@inject ProtectedLocalStorage ProtectedStorage
-@inject IHttpClientFactory HttpClientFactory
-@inject AuthenticationStateProvider authStateProvider
-@using HtmlAgilityPack;
-@using System.Text.Json;
+@using IDC.Frontend.Services
 
-<div class="m-4">
-    <h3>Đang xử lý đăng nhập...</h3>
-</div>
+
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject NavigationManager Navigation
+@inject IHttpClientFactory HttpClientFactory
+@inject ProtectedLocalStorage Storage
+@inject AuthenticationStateProvider AuthStateProvider
+
+<h3>Đang đăng nhập...</h3>
 
 @code {
-    // ====== Cấu hình Keycloak / App ======
     private const string KeycloakBase = "http://192.168.93.198:8080";
     private const string Realm = "TestSSO";
     private const string ClientId = "TestSSO";
-    private const string ClientSecret = "XsSps46oZSEvYbYJR3oQuIg57vffKYZH"; // public client => để rỗng
-    private Dictionary<string, string> ClientSecretDic = new()
+    private const string ClientSecret = "XsSps46oZSEvYbYJR3oQuIg57vffKYZH";
+    private const string RedirectUri = "http://localhost:5105/callback";
+
+    private bool _loaded;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        { "TestSSO", "XsSps46oZSEvYbYJR3oQuIg57vffKYZH" },
-        { "TestSSO3", "fFbREzbTxphlX0PG0LR2EB9sX91esj79" }
-    };
-
-    // Trang đích khi đã login xong
-    private const string HomeUrl = "/home";
-    // Trang login nội bộ khi không còn SSO
-    private string AppLoginPage = "/login";
-    private string? client;
-    private string? redirect;
-    private string? token;
-
-    protected override async Task OnInitializedAsync()
-    {
-        // Lấy URL hiện tại
-        var uri = new Uri(Navigation.Uri);
-
-        // Phân tích query string
-        var queryParams = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
-        if( queryParams.Count != 0)
-        {
-            AppLoginPage += $"?{uri.Query.TrimStart('?')}";
-        }
-        // Lấy giá trị "client"
-        if (queryParams.TryGetValue("client", out var value))
-        {
-            client = value.ToString();
-        }
-        
-        if (queryParams.TryGetValue("redirect", out var redirectValue))
-        {
-            redirect = redirectValue.ToString();
-        }
-        if (queryParams.TryGetValue("token", out var tokenValue))
-        {
-            token = tokenValue.ToString();
-        }
-    
-        // A0: Nếu có token từ query -> dùng luôn
-        if(!string.IsNullOrEmpty(token))
-        {
-            var customAuthStateProvider = (CustomAuthenticationStateProvider)authStateProvider;
-            if(queryParams.Count <= 1){
-                await ProtectedStorage.SetAsync("access_token", token);
-                await customAuthStateProvider.UpdateAuthenticationState($"{token}", true ? "local" : "session");
-                Navigation.NavigateTo(HomeUrl, forceLoad: true);
-                return;
-            }else {
-                await ProtectedStorage.SetAsync("access_token", token);
-            await customAuthStateProvider.UpdateAuthenticationState($"{token}", true ? "local" : "session");
-                var exchangedToken = await ExchangeTokenAsync(token, ClientId, ClientSecretDic.GetValueOrDefault(ClientId), client);
-                Navigation.NavigateTo($"{redirect}?token={exchangedToken}", forceLoad: true);
-                return;
-            }
-        }
-
-        // B0: Nếu đã có token hợp lệ -> về Home ngay
-        if (await HasValidTokenAsync())
-        {
-            if(!string.IsNullOrEmpty(client) && client != ClientId && !string.IsNullOrEmpty(redirect))
-            {
-                var access = (await ProtectedStorage.GetAsync<string>("access_token")).Value;
-                // Kiểm tra token có hợp lệ không
-                if(!(await IntrospectTokenAsync(access, ClientId, ClientSecret)))
-                {
-                    // Token không hợp lệ -> về trang login
-                    Navigation.NavigateTo(AppLoginPage, forceLoad: true);
-                    return;
-                }
-                var exchangedToken = await ExchangeTokenAsync(access, ClientId, ClientSecretDic.GetValueOrDefault(ClientId), client);
-                @* if(!string.IsNullOrEmpty(exchangedToken))
-                {
-                    var customAuthStateProvider = (CustomAuthenticationStateProvider)authStateProvider;
-                    await customAuthStateProvider.UpdateAuthenticationState($"{exchangedToken}", true ? "local" : "session");
-                } *@
-                Navigation.NavigateTo($"{redirect}?token={exchangedToken}", forceLoad: true);
-                return;
-            }
-            Navigation.NavigateTo(HomeUrl, forceLoad: true);
+        if (!firstRender || _loaded)
             return;
-        } else {
-            Navigation.NavigateTo(AppLoginPage, forceLoad: true);
-            return;
-        }
 
-        // B3: Không có code (thường là error=login_required) -> không còn SSO
-        // => chuyển về trang login của app
-        Navigation.NavigateTo(AppLoginPage, forceLoad: true);
-    }
+        _loaded = true;
 
-    private async Task<bool> HasValidTokenAsync()
-    {
         try
         {
-            var access = await ProtectedStorage.GetAsync<string>("access_token");
-            @* var exp = await ProtectedStorage.GetAsync<DateTimeOffset>("expires_at"); *@
-            @* if (access.Success && exp.Success)
+            var uri = new Uri(Navigation.Uri);
+            var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+
+            if (!query.TryGetValue("code", out var code))
             {
-                // còn hạn ít nhất 60s để tránh sát biên
-                if (DateTimeOffset.UtcNow.AddSeconds(60) < exp.Value)
-                    return true;
-            } *@
+                Navigation.NavigateTo("/login", true);
+                return;
+            }
 
-            if(await IntrospectTokenAsync(access.Value, ClientId, ClientSecret))
-                return true;
-
-            // TODO: Xóa token nếu hết hạn
-            await ProtectedStorage.DeleteAsync("access_token");
-            await ProtectedStorage.DeleteAsync("refresh_token");
-            await ProtectedStorage.DeleteAsync("expires_at");
-            await ProtectedStorage.DeleteAsync("dateExpire");
-            await ProtectedStorage.DeleteAsync("userId");
-            @* return true; *@
-        }
-        catch { /* ignore */ }
-
-        return false;
-    }
-
-    private async Task<string?> ExchangeTokenAsync(
-        string currentAccessToken,
-        string targetClientId,
-        string? clientSecret = null,
-        string audience = "")
-    {
-        try
-        {
             var client = HttpClientFactory.CreateClient();
             var tokenUrl = $"{KeycloakBase}/realms/{Realm}/protocol/openid-connect/token";
 
             var form = new Dictionary<string, string>
             {
-                ["grant_type"] = "urn:ietf:params:oauth:grant-type:token-exchange",
-                ["client_id"] = targetClientId,
-                ["subject_token"] = currentAccessToken,
-                ["subject_token_type"] = "urn:ietf:params:oauth:token-type:access_token",
-                ["requested_token_type"] = "urn:ietf:params:oauth:token-type:access_token",
-                ["audience"] = audience
+                ["grant_type"] = "authorization_code",
+                ["client_id"] = ClientId,
+                ["client_secret"] = ClientSecret,
+                ["code"] = code!,
+                ["redirect_uri"] = RedirectUri
             };
 
-            if (!string.IsNullOrEmpty(clientSecret))
-                form["client_secret"] = clientSecret;
+            var response = await client.PostAsync(tokenUrl, new FormUrlEncodedContent(form));
+            var json = await response.Content.ReadAsStringAsync();
 
-            using var content = new FormUrlEncodedContent(form);
-            using var resp = await client.PostAsync(tokenUrl, content);
-            string responseText = await resp.Content.ReadAsStringAsync();
-            var doc1 = new HtmlDocument();
-            doc1.LoadHtml(responseText);
-            string plainText = doc1.DocumentNode.InnerText.Trim();
-            if (!resp.IsSuccessStatusCode)
+            if (!response.IsSuccessStatusCode)
             {
-                var error = await resp.Content.ReadAsStringAsync();
-                Console.WriteLine($"Token exchange failed: {error}");
-                return null;
+                Navigation.NavigateTo("/login", true);
+                return;
             }
 
-            var json = await resp.Content.ReadAsStringAsync();
-            using var doc = System.Text.Json.JsonDocument.Parse(json);
-            var root = doc.RootElement;
+            var doc = System.Text.Json.JsonDocument.Parse(json);
+            var accessToken = doc.RootElement.GetProperty("access_token").GetString();
 
-            return root.TryGetProperty("access_token", out var at)
-                ? at.GetString()
-                : null;
+            if (string.IsNullOrEmpty(accessToken))
+            {
+                Navigation.NavigateTo("/login", true);
+                return;
+            }
+
+            await Storage.SetAsync("token", accessToken);
+
+            if (AuthStateProvider is CustomAuthenticationStateProvider customAuthProvider)
+            {
+                await customAuthProvider.UpdateAuthenticationState(accessToken, "local");
+            }
+
+            Navigation.NavigateTo("/", true);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Exchange error: {ex.Message}");
-            return null;
-        }
-    }
-    private async Task<bool> IntrospectTokenAsync(
-        string accessToken,
-        string clientId,
-        string clientSecret)
-    {
-        try
-        {
-            using var httpClient = HttpClientFactory.CreateClient();
-
-            var introspectUrl = $"{KeycloakBase}/realms/{Realm}/protocol/openid-connect/token/introspect";
-
-            // Basic Auth header: client_id:client_secret
-            @* var basicAuth = Convert.ToBase64String(
-                System.Text.Encoding.UTF8.GetBytes($"{clientId}:{clientSecret}")
-            );
-            httpClient.DefaultRequestHeaders.Authorization =
-                new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", basicAuth); *@
-
-            var form = new Dictionary<string, string>
-            {
-                ["token"] = accessToken,
-                ["client_id"] = clientId,
-                ["client_secret"] = clientSecret
-            };
-            var customAuthStateProvider = (CustomAuthenticationStateProvider)authStateProvider;
-
-            using var content = new FormUrlEncodedContent(form);
-            var response = await httpClient.PostAsync(introspectUrl, content);
-            string responseText = await response.Content.ReadAsStringAsync();
-            var doc1 = new HtmlDocument();
-            doc1.LoadHtml(responseText);
-            string plainText = doc1.DocumentNode.InnerText.Trim();
-            if (!response.IsSuccessStatusCode) {
-                // TODO: Xóa token nếu hết hạn
-                await ProtectedStorage.DeleteAsync("access_token");
-                await ProtectedStorage.DeleteAsync("refresh_token");
-                await ProtectedStorage.DeleteAsync("expires_at");
-                await ProtectedStorage.DeleteAsync("dateExpire");
-                await ProtectedStorage.DeleteAsync("userId");
-                @* await customAuthStateProvider.UpdateAuthenticationState("", false ? "local" : "session"); *@
-                return false;
-            }
-            var json = await response.Content.ReadAsStringAsync();
-
-            // Phân tích kết quả JSON
-            using var doc = JsonDocument.Parse(json);
-            if (doc.RootElement.TryGetProperty("active", out var activeProp))
-            {
-                if(!activeProp.GetBoolean())
-                {
-                    // TODO: Xóa token nếu hết hạn
-                    await ProtectedStorage.DeleteAsync("access_token");
-                    await ProtectedStorage.DeleteAsync("refresh_token");
-                    await ProtectedStorage.DeleteAsync("expires_at");
-                    await ProtectedStorage.DeleteAsync("dateExpire");
-                    await ProtectedStorage.DeleteAsync("userId");
-                    @* await customAuthStateProvider.UpdateAuthenticationState("", false ? "local" : "session"); *@
-                }
-                return activeProp.GetBoolean(); // true = token hợp lệ
-            }
-            
-            await customAuthStateProvider.UpdateAuthenticationState("", false ? "local" : "session");
-            return false;
-        }
-        catch
-        {
-            return false; // Lỗi cũng coi như token không hợp lệ
+            Console.WriteLine(ex);
+            Navigation.NavigateTo("/login", true);
         }
     }
 }

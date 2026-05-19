@@ -1,136 +1,286 @@
 @using IDC.Frontend.Services
 @using IDC.Shared.Models
-@using IDC.Shared.Models.CanBo
 @using SysMan.Models
-@inject Radzen.DialogService dialog
+@using System.Net.Http.Json
+@using System.Text.Json
 @inject NotificationService notificationService
-@inject NavigationManager UriHelper
-@inject IJSRuntime JSRuntime
 @inject ClientServices client
-@inject LdapUserService ldapUserService
-@using Microsoft.EntityFrameworkCore
-@using SysMan.Services
-@using SysMan.Services.LDapServices
-@using SysMan.Models
-@inject ExchangeProvisioner Prov
+@inject HttpClient Http
+@inject DialogService DialogService
+@implements IDisposable
+
 <style>
     .rz-textbox {
         width: 100%;
     }
-</style>
-<style>
+
     .rz-dialog-titlebar {
         margin-left: 20px;
         margin-bottom: -20px;
     }
 </style>
 
-@if (!Loading)
+@if (Loading)
 {
-    <Form TItem="tbSystemUser" Record=@user OnSubmit=Submit>
+    <div style="text-align:center; padding:30px;">
+        <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate"
+                                   Size="ProgressBarCircularSize.Medium" />
+    </div>
+}
+else
+{
+    <Form TItem="tbSystemUser" Record="@user" OnSubmit="Submit">
         <MoreForms>
             <div class="row">
+
                 <FormField Text="Tên đăng nhập" Size="12">
-                    <RadzenTextBox Name="UserName" @bind-Value=@user.UserName Style="Width: 100%" />
+                    <RadzenTextBox Name="UserName" @bind-Value="@user.UserName"
+                                   Style="@($"width:100%; {(usernameDuplicated ? "border: 1px solid red;" : "")}")"
+                                   Disabled="@isEditMode" @oninput="@(() => usernameDuplicated = false)" />
                     <RadzenRequiredValidator Component="UserName" Text="Bắt buộc" />
+                    @if (usernameDuplicated)
+                    {
+                        <div style="color:red; font-size:0.82rem; margin-top:3px;">
+                            ⚠ Tên đăng nhập này đã tồn tại
+                        </div>
+                    }
                 </FormField>
-     
+
                 <FormField Text="Họ và tên" Size="12">
-                    <RadzenTextBox @bind-Value=@user.FullName />
+                    <RadzenTextBox @bind-Value="@user.FullName" Style="width:100%" />
                 </FormField>
-                <FormField Text="Gắn với cán bộ" Size="12">
-                    <RadzenDropDown AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
-                                Data=@lstCanBo ValueProperty="IdCanBo" TextProperty="HoTen" @bind-Value=@user.IdCanBo Style="Width: 100%" />
+
+                <FormField Text="Email" Size="12">
+                    <RadzenTextBox Name="Email" @bind-Value="@Email"
+                                   Style="@($"width:100%; {(emailDuplicated ? "border: 1px solid red;" : "")}")"
+                                   @oninput="@(() => emailDuplicated = false)" />
+                    <RadzenRequiredValidator Component="Email" Text="Bắt buộc" />
+                    @if (emailDuplicated)
+                    {
+                        <div style="color:red; font-size:0.82rem; margin-top:3px;">
+                            ⚠ Email này đã được sử dụng
+                        </div>
+                    }
                 </FormField>
+
+                @if (!isEditMode)
+                {
+                    <FormField Text="Mật khẩu" Size="12">
+                        <RadzenPassword Name="Password" @bind-Value="@Password" Style="width:100%" />
+                        <RadzenRequiredValidator Component="Password" Text="Bắt buộc" />
+                    </FormField>
+                }
+
             </div>
         </MoreForms>
     </Form>
 }
 
 @code {
-    [Parameter] public tbSystemUser Record { get; set; }
-    bool Loading = false;
+    [Parameter] public QLTaiKhoan.UserRow Record { get; set; }
+
+    private const string ApiBaseUrl = "http://localhost:5240";
+
+    // CancellationToken để hủy các tác vụ async khi component bị dispose
+    private CancellationTokenSource _cts = new();
+    bool usernameDuplicated = false;
+    bool emailDuplicated = false;
+
+    bool Loading = true;
+    bool isEditMode = false;
     tbSystemUser user = new tbSystemUser();
-    List<tbCanBo> lstCanBo = new List<tbCanBo>();
-    bool createLDAPUser = false;
-    string DonVi = "";
+    string Email = "";
+    string Password = "";
 
     protected override async Task OnInitializedAsync()
     {
-        if (Record == null || Record.IdUser == 0)
-        {
-            user = new tbSystemUser();
-        }
+        isEditMode = Record != null && !string.IsNullOrEmpty(Record.Username);
+
+        if (isEditMode)
+            await LoadUserInfo(Record.Username);
         else
+            user = new tbSystemUser();
+
+        if (!_cts.Token.IsCancellationRequested)
         {
-            user = Record;
+            Loading = false;
+            // Không gọi StateHasChanged ở đây — Blazor tự xử lý sau OnInitializedAsync
         }
-        lstCanBo = (await client.apiSevices.GetAll<tbCanBo>()).Select(p => new tbCanBo { IdCanBo = p.IdCanBo, HoTen = p.HoTen + " (" + p.DonViCT + ")" }).ToList();
-    }
-    private void OnChange(object args)
-    {
-        // DonVi = lstCanBo.FirstOrDefault(p => p.IdCanBo == user.IdCanBo)?.DonVi;
     }
 
-    //// <summary>
-    /// Phương thức tạo mới một người dùng hệ thống
-    /// </summary>
-    /// <param name="objUser">Người dùng được tạo</param>
-    /// <returns></returns>
+    private async Task LoadUserInfo(string username)
+    {
+        try
+        {
+            var response = await Http.GetAsync(
+                $"{ApiBaseUrl}/api/GetListUser/{username}", _cts.Token);
+
+            // Component có thể đã bị dispose trong lúc chờ — kiểm tra trước khi xử lý
+            if (_cts.Token.IsCancellationRequested) return;
+
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync(_cts.Token);
+                if (_cts.Token.IsCancellationRequested) return;
+
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var root = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(content, options);
+
+                if (root.TryGetProperty("data", out var data))
+                {
+                    var firstName = data.TryGetProperty("firstName", out var fn) ? fn.GetString() ?? "" : "";
+                    var lastName = data.TryGetProperty("lastName", out var ln) ? ln.GetString() ?? "" : "";
+
+                    user.UserName = username;
+                    user.FullName = $"{firstName} {lastName}".Trim();
+                    Email = data.TryGetProperty("email", out var em) ? em.GetString() ?? "" : "";
+                }
+            }
+            else
+            {
+                if (!_cts.Token.IsCancellationRequested)
+                    notificationService.Notify(NotificationSeverity.Error,
+                        "Không thể tải thông tin tài khoản", null, duration: 3000);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Component bị dispose trong lúc đang gọi API — bỏ qua, không làm gì
+        }
+        catch (Exception ex)
+        {
+            if (!_cts.Token.IsCancellationRequested)
+            {
+                Console.WriteLine($"[QLTaiKhoan_Detail] LoadUserInfo: {ex.Message}");
+                notificationService.Notify(NotificationSeverity.Error,
+                    "Lỗi kết nối đến máy chủ", null, duration: 3000);
+            }
+        }
+    }
+
     protected async Task Submit(tbSystemUser objUser)
     {
         try
         {
-            // objUser.Password = "Abc123";
-            // objUser.UserName = "nghiahvan2";
-            // objUser.FullName = "Nguyễn Đình Nghĩa";
-            // string email = "nghiahvan2@c500.edu.vn";
+            var parts = (objUser.FullName ?? "").Trim().Split(' ', 2);
+            var firstName = parts.Length > 0 ? parts[0] : "";
+            var lastName = parts.Length > 1 ? parts[1] : "";
+            bool success = false; // ✅ Flag kiểm soát đóng dialog
 
-            // string sam = "nghiahvan2";
-            // string db = "DB01";
-            // string smtp = "nghiahvan2@c500.edu.vn";
-            // string result = "";
-
-            if (Record.IdUser == 0)
+            if (isEditMode)
             {
-                // Tạo tài khoản trên LDAP
-                //ldapUserService.CreateUser(objUser.UserName, objUser.Password, objUser.FullName, email);
+                var payload = new { username = objUser.UserName, email = Email, firstName, lastName };
 
-                
-                // Liên kết tài khoản vừa tạo với tài khoản mail exchange
-                // var (ok, output) = Prov.EnableMailboxOnPrem(sam, db, smtp);
-                // result = ok ? output : $"Lỗi: {output}";
+                var response = await Http.PutAsJsonAsync(
+                    $"{ApiBaseUrl}/api/ChangeUser", payload, _cts.Token);
 
+                if (_cts.Token.IsCancellationRequested) return;
 
+                if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+                {
+                    emailDuplicated = true;
+                    StateHasChanged();
+                    notificationService.Notify(
+                        NotificationSeverity.Warning,
+                        "Email đã tồn tại",
+                        $"Email '{Email}' đã được sử dụng bởi tài khoản khác.",
+                        duration: 4000);
+                    return; // ✅ Dừng hẳn, không xuống Close
+                }
 
-                // Lấy số định danh cho người dùng mới
-                objUser.IdUser = await client.numServices.GetInt<tbSoftwareUser>();
-                
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errMsg = await ParseErrorMessage(response, "Cập nhật thông tin không thành công");
+                    notificationService.Notify(NotificationSeverity.Error, "Lỗi", errMsg, duration: 3000);
+                    return;
+                }
 
-                //objUser.PasswordHash = Libs.CreateSHAHash(objUser.PasswordHash);
-                //objUser.token = await Task.Run(() => TokenHelper.GenerateToken(objUser));
-                
-                await client.apiSevices.Create<tbSystemUser>(objUser);
-
-
-                // Tạo tài khoản người dùng trên CSDL KeyLoak
-
+                notificationService.Notify(NotificationSeverity.Success, "Cập nhật thành công", null, duration: 2000);
+                success = true;
             }
-            else{
-                // Cập nhật thông tin tài khoản trên LDAP
-                
-                
-                // Cập nhật thông tin tài khoản trong CSDL dbSysMan
-                await client.apiSevices.Update<tbSystemUser>(objUser);
-            
-                // Cập nhật thông tài khoản người dùng trên CSDL KeyLoak
+            else
+            {
+                var payload = new
+                {
+                    username = objUser.UserName,
+                    email = Email,
+                    firstName,
+                    lastName,
+                    password = Password
+                };
+
+                var response = await Http.PostAsJsonAsync(
+                    $"{ApiBaseUrl}/api/CreateUser", payload, _cts.Token);
+
+                if (_cts.Token.IsCancellationRequested) return;
+
+                if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    var obj = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(content);
+                    var field = obj.TryGetProperty("field", out var f) ? f.GetString() : "";
+                    var message = obj.TryGetProperty("message", out var m) ? m.GetString() : "Thông tin đã tồn tại";
+
+                    usernameDuplicated = false;
+                    emailDuplicated = false;
+
+                    if (field == "username") usernameDuplicated = true;
+                    else if (field == "email") emailDuplicated = true;
+                    else { usernameDuplicated = true; emailDuplicated = true; }
+
+                    StateHasChanged();
+                    notificationService.Notify(
+                        NotificationSeverity.Warning,
+                        "Thông tin đã tồn tại",
+                        message,
+                        duration: 4000);
+                    return; // ✅ Dừng hẳn, không xuống Close
+                }
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errMsg = await ParseErrorMessage(response, "Tạo tài khoản thất bại");
+                    notificationService.Notify(NotificationSeverity.Error, "Lỗi", errMsg, duration: 3000);
+                    return;
+                }
+
+                notificationService.Notify(NotificationSeverity.Success, "Tạo tài khoản thành công", null, duration: 2000);
+                success = true;
             }
+
+            // ✅ Chỉ đóng dialog khi success = true
+            if (!success)
+                DialogService.Close(result: false); // Trả về null khi không thành công
         }
-        catch
+        catch (OperationCanceledException) { /* Component disposed — bỏ qua */ }
+        catch (Exception ex)
         {
-            //notificationService.Notify(NotificationSeverity.Error, $"Thông báo:", "Thay đổi không thành công", duration: 1500);
+            if (!_cts.Token.IsCancellationRequested)
+            {
+                Console.WriteLine($"[QLTaiKhoan_Detail] Submit: {ex.Message}");
+                notificationService.Notify(NotificationSeverity.Error, "Lỗi khi lưu dữ liệu", null, duration: 3000);
+            }
         }
     }
 
+    // Helper: đọc message lỗi từ response body
+    private async Task<string> ParseErrorMessage(HttpResponseMessage response, string fallback)
+    {
+        try
+        {
+            var content = await response.Content.ReadAsStringAsync();
+            var obj = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(content);
+            if (obj.TryGetProperty("message", out var m))
+                return m.GetString() ?? fallback;
+        }
+        catch { }
+        return fallback;
+    }
 
+    // Hủy tất cả tác vụ async đang chờ khi component bị dispose
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
 }
