@@ -5,7 +5,7 @@
     private string Client = "TestSSO3";
     protected override void OnAfterRender(bool firstRender)
     {
-        var uri = new Uri(UriHelper.BaseUri);
+         var uri = new Uri(UriHelper.BaseUri);
 
         var currentHostWithNewPort =
             $"{uri.Scheme}://{uri.Host}:5015";
@@ -15,6 +15,6 @@
 
         UriHelper.NavigateTo(
             $"{currentHostWithNewPort}/callback?redirect={redirect}&client={Client}"
-        );
+        ); 
     }
 }

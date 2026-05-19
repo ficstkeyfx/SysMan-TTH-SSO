@@ -51,10 +51,10 @@ namespace SysMan.Services.IApiKCServices
             _notificationService = notificationService;
 
             // Load Keycloak configuration
-            _keycloakUrl = configuration["Keycloak:Url"] ?? "http://172.17.10.77:8080";
+            _keycloakUrl = configuration["Keycloak:Url"] ?? "http://192.168.93.198:8080";
             _realm = configuration["Keycloak:Realm"] ?? "master";
             _clientId = configuration["Keycloak:ClientId"] ?? "apim-client";
-            _clientSecret = configuration["Keycloak:ClientSecret"] ?? "HgRX1EYCnHCxZaPlfRMnoxPoXssfZdWw";
+            _clientSecret = configuration["Keycloak:ClientSecret"] ?? "uki6AmUXh5bW036awSC7E18fhh6ZjezR";
             _username = configuration["Keycloak:Username"] ?? "admin";
             _password = configuration["Keycloak:Password"] ?? "admin";
 

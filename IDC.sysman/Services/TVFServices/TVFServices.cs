@@ -17,7 +17,7 @@ namespace SysMan
         readonly NotificationService _notificationService;
         public TVFServices(HttpClient httpClient, AuthenticationStateProvider authenticationStateProvider, NotificationService notificationService)
         {
-            httpClient = new HttpClient { BaseAddress = new Uri(configuration.GetConnectionString("API") ?? "http://localhost:7239") };
+            httpClient = new HttpClient { BaseAddress = new Uri(configuration.GetConnectionString("API") ?? "http://localhost:5240") };
             _httpClient = httpClient;
             _authenticationStateProvider = authenticationStateProvider;
             _notificationService = notificationService;

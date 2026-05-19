@@ -16,14 +16,14 @@
 
 @code {
     // ====== Cấu hình Keycloak / App ======
-    private const string KeycloakBase = "http://172.17.10.77:8080";
+    private const string KeycloakBase = "http://192.168.93.198:8080";
     private const string Realm = "TestSSO";
     private const string ClientId = "TestSSO";
-    private const string ClientSecret = "eow12rrq9YQqERnTPKabxpmU1QDyYsGG"; // public client => để rỗng
+    private const string ClientSecret = "XsSps46oZSEvYbYJR3oQuIg57vffKYZH"; // public client => để rỗng
     private Dictionary<string, string> ClientSecretDic = new()
     {
-        { "TestSSO", "eow12rrq9YQqERnTPKabxpmU1QDyYsGG" },
-        { "TestSSO3", "XA6nxHPzbYkBQqpC98RvB93NXU1rEAjR" }
+        { "TestSSO", "XsSps46oZSEvYbYJR3oQuIg57vffKYZH" },
+        { "TestSSO3", "fFbREzbTxphlX0PG0LR2EB9sX91esj79" }
     };
 
     // Trang đích khi đã login xong
