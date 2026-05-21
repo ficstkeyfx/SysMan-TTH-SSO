@@ -63,6 +63,9 @@
 
             var doc = System.Text.Json.JsonDocument.Parse(json);
             var accessToken = doc.RootElement.GetProperty("access_token").GetString();
+            //xóa logout page
+            var idToken = doc.RootElement.TryGetProperty("id_token", out var el) ? el.GetString() : null;
+
 
             if (string.IsNullOrEmpty(accessToken))
             {
@@ -71,6 +74,10 @@
             }
 
             await Storage.SetAsync("token", accessToken);
+
+            //xóa logout page
+            if (!string.IsNullOrEmpty(idToken))
+                await Storage.SetAsync("id_token", idToken);
 
             if (AuthStateProvider is CustomAuthenticationStateProvider customAuthProvider)
             {
