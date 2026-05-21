@@ -53,10 +53,10 @@ builder.Services.AddScoped<DialogService>();
 builder.Services.AddSingleton<ExchangeProvisioner>();
 
 builder.Services.AddMemoryCache();
-builder.Services.AddScoped<ITokenService,TokenService>();
-builder.Services.AddScoped<IApiKCServices,ApiKCServices>();
+builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IApiKCServices, ApiKCServices>();
 builder.Services.AddScoped<AuthenServices>();
-builder.Services.AddScoped<IAuthenServices,AuthenServices>();
+builder.Services.AddScoped<IAuthenServices, AuthenServices>();
 builder.Services.AddScoped<IApiServices, ApiServices>();
 builder.Services.AddScoped<ILinkService, LinkService>();
 builder.Services.AddScoped<ITvfServices, TvfServices>();
@@ -83,12 +83,12 @@ builder.Services.AddResponseCompression(opts =>
 
 builder.Services.Configure<IISServerOptions>(options =>
 {
-    options.MaxRequestBodySize = null; 
+    options.MaxRequestBodySize = null;
 });
 
 builder.Services.Configure<Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerOptions>(options =>
 {
-    options.Limits.MaxRequestBodySize = null; 
+    options.Limits.MaxRequestBodySize = null;
 });
 
 
@@ -96,7 +96,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowCollabora", policy =>
     {
-        policy.WithOrigins("http://203.128.246.222:9980") 
+        policy.WithOrigins("http://203.128.246.222:9980")
               .AllowAnyMethod()
               .AllowAnyHeader();
     });
@@ -113,15 +113,36 @@ var app = builder.Build();
 
 app.Use(async (context, next) =>
 {
-    context.Features.Get<IHttpMaxRequestBodySizeFeature>()!.MaxRequestBodySize = 1000 * 1024 * 1024; 
+    context.Features.Get<IHttpMaxRequestBodySizeFeature>()!.MaxRequestBodySize = 1000 * 1024 * 1024;
     await next.Invoke();
 });
 
 app.Use(async (context, next) =>
 {
-    context.Response.Headers.Append("Content-Security-Policy", 
+    context.Response.Headers.Append("Content-Security-Policy",
         "frame-ancestors 'self' http://SysMan.6pg.org http://203.128.246.222:9980;");
     await next();
+});
+
+app.MapGet("/logout", async (HttpContext context) =>
+{
+    // Xóa cookies nếu có
+    foreach (var cookie in context.Request.Cookies.Keys)
+    {
+        context.Response.Cookies.Delete(cookie);
+    }
+
+    var postLogoutRedirectUri = "http://localhost:5105/";
+    var keycloakLogoutUrl =
+        "http://192.168.93.198:8080/realms/TestSSO/protocol/openid-connect/logout" +
+        $"?client_id=TestSSO" +
+        $"&post_logout_redirect_uri={Uri.EscapeDataString(postLogoutRedirectUri)}";
+
+    // Lấy id_token từ query string nếu app truyền vào
+    if (context.Request.Query.TryGetValue("id_token_hint", out var idToken))
+        keycloakLogoutUrl += $"&id_token_hint={Uri.EscapeDataString(idToken!)}";
+
+    context.Response.Redirect(keycloakLogoutUrl);
 });
 
 // Configure the HTTP request pipeline.
