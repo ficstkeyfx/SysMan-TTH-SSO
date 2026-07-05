@@ -150,7 +150,18 @@
             if (response.IsSuccessStatusCode)
             {
                 // Đổi mật khẩu thành công
-                notificationService.Notify(NotificationSeverity.Success, "Đổi mật khẩu thành công", null, duration: 2000);
+                notificationService.Notify(NotificationSeverity.Success, "Đổi mật khẩu Keycloak thành công", null, duration: 2000);
+
+                // Sync password hash trong SQL
+                try
+                {
+                    var syncPayload = new { Username = obj.UserName, NewPassword = NewPassword };
+                    await Http.PostAsJsonAsync($"{ApiBaseUrl}/api/sync/change-password", syncPayload);
+                }
+                catch (Exception exSync)
+                {
+                    Console.WriteLine($"[DoiMatKhau] Sync SQL after change password: {exSync.Message}");
+                }
 
                 // Reset các ô nhập
                 OldPassword     = string.Empty;

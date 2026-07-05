@@ -244,7 +244,19 @@ else
                     return;
                 }
 
-                notificationService.Notify(NotificationSeverity.Success, "Tạo tài khoản thành công", null, duration: 2000);
+                notificationService.Notify(NotificationSeverity.Success, "Tạo tài khoản Keycloak thành công", null, duration: 2000);
+
+                // Sync tạo user trong SQL
+                try
+                {
+                    var syncPayload = new { Username = objUser.UserName, FullName = objUser.FullName, Email = Email, Password = Password };
+                    await Http.PostAsJsonAsync($"{ApiBaseUrl}/api/sync/create-sql-user", syncPayload, _cts.Token);
+                }
+                catch (Exception exSync)
+                {
+                    Console.WriteLine($"[QLTaiKhoan_Detail] Sync SQL after create: {exSync.Message}");
+                }
+
                 success = true;
             }
 

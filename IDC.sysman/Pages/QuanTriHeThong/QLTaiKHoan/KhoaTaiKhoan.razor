@@ -192,6 +192,17 @@ else
                 // Đổi trạng thái ngay trên dòng, không cần gọi lại toàn bộ API
                 row.IsLocked = !row.IsLocked;
 
+                // Sync SQL sau khi khóa/mở khóa Keycloak
+                try
+                {
+                    var syncPayload = new { Username = row.Username, IsLocked = row.IsLocked };
+                    await Http.PostAsJsonAsync($"{ApiBaseUrl}/api/sync/toggle-lock", syncPayload);
+                }
+                catch (Exception exSync)
+                {
+                    Console.WriteLine($"[KhoaTaiKhoan] Sync SQL after lock toggle: {exSync.Message}");
+                }
+
                 var msg = row.IsLocked ? $"Đã khóa tài khoản {row.Username}"
                                        : $"Đã mở khóa tài khoản {row.Username}";
                 notificationService.Notify(NotificationSeverity.Success, "Thành công", msg, duration: 2000);

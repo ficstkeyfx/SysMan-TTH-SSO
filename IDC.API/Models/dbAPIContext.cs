@@ -64,6 +64,7 @@ namespace api.Models
             {
                 entity.ToTable("tbSoftwareUser");
                 entity.HasKey(e => e.IdSoftwareUser);
+                entity.Property(e => e.IdSoftwareUser).ValueGeneratedNever();
             });
             modelBuilder.Entity<tbNhom>(entity =>
             {
@@ -85,6 +86,7 @@ namespace api.Models
             {
                 entity.ToTable("tbSystemUser");
                 entity.HasKey(e => e.IdUser);
+                entity.Property(e => e.IdUser).ValueGeneratedNever();
             });
             modelBuilder.Entity<vSystemUser>(entity =>
             {
