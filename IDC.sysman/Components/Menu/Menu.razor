@@ -47,7 +47,7 @@
     }
 
     /// <summary>
-    /// Hàm mở một trang web khi người dùng kích chuột 
+    /// Hàm mở một trang web khi người dùng kích chuột
     /// vào menu, ở dạng Dialog hoặc theo link
     /// Ngày 09/09/2025 - làm mịn lại
     /// </summary>
@@ -62,7 +62,27 @@
         ///////////////////////////////////////////////////////////////////
         if (!string.IsNullOrEmpty(_Path))
         {
-            if (_Path.Contains(":"))
+            // Các trang mở trực tiếp (không qua dialog) để sidebar vẫn dùng được
+            var directPages = new[] { "DongBoTaiKhoanLDAP" };
+            var firstPart = _Path.Split(':')[0];
+
+            // Nếu path bắt đầu bằng "/" → navigate thẳng
+            if (_Path.StartsWith("/"))
+            {
+                UriHelper.NavigateTo(_Path);
+            }
+            // Nếu filename thuộc danh sách mở trực tiếp → navigate thẳng
+            else if (directPages.Contains(firstPart, StringComparer.OrdinalIgnoreCase))
+            {
+                // Map filename → route
+                var route = firstPart switch
+                {
+                    "DongBoTaiKhoanLDAP" => "/admin/dong-bo-tai-khoan-ldap",
+                    _ => "/"
+                };
+                UriHelper.NavigateTo(route);
+            }
+            else if (_Path.Contains(":"))
             {
                 List<string> results = new();
                 string dialogComponentName = "";// Tên Dialog
