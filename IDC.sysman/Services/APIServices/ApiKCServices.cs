@@ -35,28 +35,29 @@ namespace SysMan.Services.IApiKCServices
 
         public ApiKCServices(HttpClient httpClient, AuthenticationStateProvider authenticationStateProvider, NotificationService notificationService)
         {
+            var skipSsl = configuration.GetValue<bool>("Wso2Api:SkipSslValidation", true);
             var handler = new HttpClientHandler
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
+                ServerCertificateCustomValidationCallback = skipSsl
+                    ? (message, cert, chain, errors) => true
+                    : null
             };
-            // _httpClient = httpClient;
+            var wso2BaseAddress = configuration["Wso2Api:BaseAddress"] ?? string.Empty;
             var _httpClient = new HttpClient(handler)
             {
-                BaseAddress = new Uri("https://10.0.27.122:8243/apiFinal/v1/")
+                BaseAddress = new Uri(wso2BaseAddress)
             };
-            // if(!(_httpClient.BaseAddress != null))
-            // _httpClient.BaseAddress = new Uri(configuration.GetConnectionString("API") ?? "https://10.0.27.122:8243/apiFinal/v1/");
-            
+
             _authenticationStateProvider = authenticationStateProvider;
             _notificationService = notificationService;
 
             // Load Keycloak configuration
-            _keycloakUrl = configuration["Keycloak:Url"] ?? "http://192.168.93.198:8080";
-            _realm = configuration["Keycloak:Realm"] ?? "master";
-            _clientId = configuration["Keycloak:ClientId"] ?? "apim-client";
-            _clientSecret = configuration["Keycloak:ClientSecret"] ?? "uki6AmUXh5bW036awSC7E18fhh6ZjezR";
-            _username = configuration["Keycloak:Username"] ?? "admin";
-            _password = configuration["Keycloak:Password"] ?? "admin";
+            _keycloakUrl = configuration["Keycloak:Url"] ?? string.Empty;
+            _realm = configuration["Keycloak:Realm"] ?? string.Empty;
+            _clientId = configuration["Keycloak:ClientId"] ?? string.Empty;
+            _clientSecret = configuration["Keycloak:ClientSecret"] ?? string.Empty;
+            _username = configuration["Keycloak:Username"] ?? string.Empty;
+            _password = configuration["Keycloak:Password"] ?? string.Empty;
 
             Console.WriteLine($"✅ ApiServices initialized for WSO2 API: {_httpClient.BaseAddress}");
             Console.WriteLine($"✅ Keycloak configured: {_keycloakUrl}/realms/{_realm}");
@@ -122,7 +123,7 @@ namespace SysMan.Services.IApiKCServices
                     _notificationService?.Notify(NotificationSeverity.Error,
                         "Lỗi xác thực",
                         "Không thể xác thực với WSO2 API. Vui lòng kiểm tra cấu hình Keycloak.",
-                        duration: 5000);
+                        duration: configuration.GetValue<int>("Notifications:ErrorDuration", 5000));
                 }
             }
 
@@ -305,10 +306,8 @@ namespace SysMan.Services.IApiKCServices
 
                 var formContent = new FormUrlEncodedContent(requestContent);
 
-                // Create authorization header (Basic Auth - same as your curl)
-                // var credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{_clientId}:{_clientSecret}"));
-                // Console.WriteLine(credentials);
-                var credentials = "ZGZhYmExMzEtYzk5Mi00OTcwLTg1OGEtYzIyN2FlNTc1MmM0OlR5Snk4SGJCaVhZeEtiMmxJdEtxbU9IYmM2cmk2VHlo";
+                // Create authorization header (Basic Auth - dynamically built from config)
+                var credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{_clientId}:{_clientSecret}"));
                 using var request = new HttpRequestMessage(HttpMethod.Post, tokenEndpoint)
                 {
                     Content = formContent
@@ -346,7 +345,7 @@ namespace SysMan.Services.IApiKCServices
                     _notificationService?.Notify(NotificationSeverity.Warning,
                         "Keycloak Warning",
                         $"Could not get Keycloak token: {response.StatusCode}",
-                        duration: 3000);
+                        duration: configuration.GetValue<int>("Notifications:WarningDuration", 3000));
                 }
             }
             catch (Exception ex)
@@ -355,7 +354,7 @@ namespace SysMan.Services.IApiKCServices
                 _notificationService?.Notify(NotificationSeverity.Error,
                     "Keycloak Error",
                     $"Exception getting Keycloak token: {ex.Message}",
-                    duration: 5000);
+                    duration: configuration.GetValue<int>("Notifications:ErrorDuration", 5000));
             }
 
             return false;

@@ -217,21 +217,37 @@
     {
         if (firstRender && tokenService.Token == null)
         {
-            // Ưu tiên localStorage
-            var tokenObj = await LocalStorage.GetAsync<string>("token");
-            string? token = tokenObj.Success ? tokenObj.Value : null;
+            string? token = null;
+
+            try
+            {
+                var tokenObj = await LocalStorage.GetAsync<string>("token");
+                token = tokenObj.Success ? tokenObj.Value : null;
+            }
+            catch (System.Security.Cryptography.CryptographicException)
+            {
+                try { await LocalStorage.DeleteAsync("token"); } catch { }
+            }
+            catch { }
 
             if (string.IsNullOrEmpty(token))
             {
-                // fallback sessionStorage
-                var sessionObj = await SessionStorage.GetAsync<string>("token");
-                token = sessionObj.Success ? sessionObj.Value : null;
+                try
+                {
+                    var sessionObj = await SessionStorage.GetAsync<string>("token");
+                    token = sessionObj.Success ? sessionObj.Value : null;
+                }
+                catch (System.Security.Cryptography.CryptographicException)
+                {
+                    try { await SessionStorage.DeleteAsync("token"); } catch { }
+                }
+                catch { }
             }
 
             if (!string.IsNullOrEmpty(token))
             {
                 tokenService.Token = token;
-                StateHasChanged(); // nếu cần reload UI
+                StateHasChanged();
             }
         }
     }

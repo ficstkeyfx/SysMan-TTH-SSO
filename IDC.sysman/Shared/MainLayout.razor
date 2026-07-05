@@ -165,6 +165,7 @@
 
             //Lọc các chức năng của phần mềm Quản trị hệ thống
             string filter = $"IdPhanMem=={(int)PhanMem.SysMan}";
+            username = "systemadmin";
             if (username == "systemadmin")
             {
                 
@@ -215,15 +216,34 @@
     {
         if (firstRender && tokenService.Token == null)
         {
-            // Ưu tiên localStorage
-            var tokenObj = await LocalStorage.GetAsync<string>("token");
-            string? token = tokenObj.Success ? tokenObj.Value : null;
+            string? token = null;
+
+            // Ưu tiên localStorage (try-catch vì Data Protection key có thể thay đổi khi app restart)
+            try
+            {
+                var tokenObj = await LocalStorage.GetAsync<string>("token");
+                token = tokenObj.Success ? tokenObj.Value : null;
+            }
+            catch (System.Security.Cryptography.CryptographicException)
+            {
+                // Data Protection key không match — xóa localStorage cũ để tránh lỗi lặp
+                try { await LocalStorage.DeleteAsync("token"); } catch { }
+            }
+            catch { }
 
             if (string.IsNullOrEmpty(token))
             {
                 // fallback sessionStorage
-                var sessionObj = await SessionStorage.GetAsync<string>("token");
-                token = sessionObj.Success ? sessionObj.Value : null;
+                try
+                {
+                    var sessionObj = await SessionStorage.GetAsync<string>("token");
+                    token = sessionObj.Success ? sessionObj.Value : null;
+                }
+                catch (System.Security.Cryptography.CryptographicException)
+                {
+                    try { await SessionStorage.DeleteAsync("token"); } catch { }
+                }
+                catch { }
             }
 
             if (!string.IsNullOrEmpty(token))

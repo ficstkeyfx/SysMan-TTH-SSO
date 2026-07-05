@@ -1,6 +1,7 @@
 @page "/login"
 @layout LoginLayout
 @inject NavigationManager Navigation
+@inject IConfiguration Configuration
 
 <PageTitle>Đăng nhập</PageTitle>
 
@@ -15,13 +16,19 @@
 
     protected override void OnInitialized()
     {
-        var keycloakUrl =
-            "http://192.168.93.198:8080/realms/TestSSO/protocol/openid-connect/auth" +
-            "?client_id=TestSSO" +
-            "&response_type=code" +
-            "&scope=openid" +
-            "&redirect_uri=http://localhost:5105/callback";
+        var keycloakUrl = Configuration["Keycloak:Url"] ?? "http://192.168.93.198:8080";
+        var realm = Configuration["Keycloak:Realm"] ?? "TestSSO";
+        var clientId = Configuration["Keycloak:ClientId"] ?? "TestSSO";
+        var postLogoutRedirectUri = Configuration["Keycloak:PostLogoutRedirectUri"] ?? "http://localhost:5105/";
+        var redirectUri = postLogoutRedirectUri.TrimEnd('/') + "/callback";
 
-        Navigation.NavigateTo(keycloakUrl, true);
+        var keycloakLoginUrl =
+            $"{keycloakUrl}/realms/{realm}/protocol/openid-connect/auth" +
+            $"?client_id={clientId}" +
+            $"&response_type=code" +
+            $"&scope=openid" +
+            $"&redirect_uri={Uri.EscapeDataString(redirectUri)}";
+
+        Navigation.NavigateTo(keycloakLoginUrl, true);
     }
 }

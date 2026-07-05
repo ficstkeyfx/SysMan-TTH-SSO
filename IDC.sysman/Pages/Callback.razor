@@ -10,15 +10,23 @@
 @inject IHttpClientFactory HttpClientFactory
 @inject ProtectedLocalStorage Storage
 @inject AuthenticationStateProvider AuthStateProvider
+@inject IConfiguration Configuration
 
 <h3>Đang đăng nhập...</h3>
 
 @code {
-    private const string KeycloakBase = "http://192.168.93.198:8080";
-    private const string Realm = "TestSSO";
-    private const string ClientId = "TestSSO";
-    private const string ClientSecret = "XsSps46oZSEvYbYJR3oQuIg57vffKYZH";
-    private const string RedirectUri = "http://localhost:5105/callback";
+    private string KeycloakBase => Configuration["Keycloak:Url"] ?? "";
+    private string Realm => Configuration["Keycloak:Realm"] ?? "";
+    private string ClientId => Configuration["Keycloak:ClientId"] ?? "";
+    private string ClientSecret => Configuration["Keycloak:ClientSecret"] ?? "";
+    private string RedirectUri
+    {
+        get
+        {
+            var baseUri = Configuration["Keycloak:PostLogoutRedirectUri"] ?? "http://localhost:5105/";
+            return baseUri.TrimEnd('/') + "/callback";
+        }
+    }
 
     private bool _loaded;
 
@@ -63,9 +71,7 @@
 
             var doc = System.Text.Json.JsonDocument.Parse(json);
             var accessToken = doc.RootElement.GetProperty("access_token").GetString();
-            //xóa logout page
             var idToken = doc.RootElement.TryGetProperty("id_token", out var el) ? el.GetString() : null;
-
 
             if (string.IsNullOrEmpty(accessToken))
             {
@@ -73,11 +79,13 @@
                 return;
             }
 
-            await Storage.SetAsync("token", accessToken);
-
-            //xóa logout page
-            if (!string.IsNullOrEmpty(idToken))
-                await Storage.SetAsync("id_token", idToken);
+            try
+            {
+                await Storage.SetAsync("token", accessToken);
+                if (!string.IsNullOrEmpty(idToken))
+                    await Storage.SetAsync("id_token", idToken);
+            }
+            catch (System.Security.Cryptography.CryptographicException) { /* key mismatch - ignore */ }
 
             if (AuthStateProvider is CustomAuthenticationStateProvider customAuthProvider)
             {

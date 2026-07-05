@@ -5,11 +5,15 @@ namespace SysMan.Services.LinkService
 {
     public class LinkService : ILinkService
     {
-       
+
         private readonly IMemoryCache _cache;
-         public LinkService(IMemoryCache memoryCache)
+        private readonly TimeSpan _oneTimeLinkExpiration;
+
+        public LinkService(IMemoryCache memoryCache, IConfiguration configuration)
         {
             _cache = memoryCache;
+            var minutes = configuration.GetValue<int>("LinkService:OneTimeLinkExpirationMinutes", 10);
+            _oneTimeLinkExpiration = TimeSpan.FromMinutes(minutes);
         }
 
         public string GenerateOneTimeLink(string objectName, string bucketName)
@@ -23,7 +27,7 @@ namespace SysMan.Services.LinkService
                 IsUsed = false
             };
 
-            _cache.Set(token, link, TimeSpan.FromMinutes(10));
+            _cache.Set(token, link, _oneTimeLinkExpiration);
             return $"/preview-file?token={token}";
         }
 
@@ -33,12 +37,12 @@ namespace SysMan.Services.LinkService
             {
                 if (link.IsUsed)
                 {
-                    _cache.Remove(token); 
+                    _cache.Remove(token);
                     return null;
                 }
 
                 link.IsUsed = true;
-                _cache.Set(token, link, TimeSpan.FromMinutes(10));
+                _cache.Set(token, link, _oneTimeLinkExpiration);
 
                 return new LinkObject
                 {
@@ -46,8 +50,7 @@ namespace SysMan.Services.LinkService
                     BucketName = link.BucketName,
                 };
             }
-            return null; 
+            return null;
         }
     }
 }
-

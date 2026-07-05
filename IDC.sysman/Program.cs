@@ -34,11 +34,11 @@ IConfigurationRoot configuration = new ConfigurationBuilder()
                             .Build();
 builder.Services.AddHttpClient("GenericApi", client =>
 {
-    client.Timeout = TimeSpan.FromSeconds(30);
+    client.Timeout = TimeSpan.FromSeconds(configuration.GetValue<int>("HttpClient:TimeoutSeconds", 30));
     client.DefaultRequestHeaders.Accept.Add(
         new MediaTypeWithQualityHeaderValue("application/json"));
 })
-.SetHandlerLifetime(TimeSpan.FromMinutes(5)); // refresh DNS định kỳ
+.SetHandlerLifetime(TimeSpan.FromMinutes(configuration.GetValue<int>("HttpClient:HandlerLifetimeMinutes", 5))); // refresh DNS định kỳ
 
 
 // Add services to the container.
@@ -96,7 +96,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowCollabora", policy =>
     {
-        policy.WithOrigins("http://203.128.246.222:9980")
+        policy.WithOrigins(configuration["Collabora:AllowedOrigin"] ?? "http://203.128.246.222:9980")
               .AllowAnyMethod()
               .AllowAnyHeader();
     });
@@ -113,14 +113,14 @@ var app = builder.Build();
 
 app.Use(async (context, next) =>
 {
-    context.Features.Get<IHttpMaxRequestBodySizeFeature>()!.MaxRequestBodySize = 1000 * 1024 * 1024;
+    context.Features.Get<IHttpMaxRequestBodySizeFeature>()!.MaxRequestBodySize = configuration.GetValue<long?>("MaxRequestBodySizeBytes") ?? (1000L * 1024 * 1024);
     await next.Invoke();
 });
 
 app.Use(async (context, next) =>
 {
     context.Response.Headers.Append("Content-Security-Policy",
-        "frame-ancestors 'self' http://SysMan.6pg.org http://203.128.246.222:9980;");
+        configuration["Collabora:CspFrameAncestors"] ?? "frame-ancestors 'self' http://SysMan.6pg.org http://203.128.246.222:9980;");
     await next();
 });
 
@@ -132,10 +132,13 @@ app.MapGet("/logout", async (HttpContext context) =>
         context.Response.Cookies.Delete(cookie);
     }
 
-    var postLogoutRedirectUri = "http://localhost:5105/";
+    var keycloakUrl = configuration["Keycloak:Url"] ?? "";
+    var realm = configuration["Keycloak:Realm"] ?? "";
+    var clientId = configuration["Keycloak:ClientId"] ?? "";
+    var postLogoutRedirectUri = configuration["Keycloak:PostLogoutRedirectUri"] ?? "http://localhost:5105/";
     var keycloakLogoutUrl =
-        "http://192.168.93.198:8080/realms/TestSSO/protocol/openid-connect/logout" +
-        $"?client_id=TestSSO" +
+        $"{keycloakUrl}/realms/{realm}/protocol/openid-connect/logout" +
+        $"?client_id={clientId}" +
         $"&post_logout_redirect_uri={Uri.EscapeDataString(postLogoutRedirectUri)}";
 
     // Lấy id_token từ query string nếu app truyền vào

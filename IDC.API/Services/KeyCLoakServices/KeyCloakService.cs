@@ -20,18 +20,33 @@ namespace api.Services.KeyCloakServices
 
         private static SqlConnection _db;
         private readonly ILogger<KeycloakService> _logger;
-        private string _keycloakUrl = $"http://192.168.93.198:8080";
-        private string _realm = $"TestSSO";
-        private string _clientId = $"TestSSO";
-        private string _clientSecret = $"XsSps46oZSEvYbYJR3oQuIg57vffKYZH";
-        private string _adminUsername = $"admin";
-        private string _adminPassword = $"admin";
+        private readonly string _keycloakUrl;
+        private readonly string _realm;
+        private readonly string _clientId;
+        private readonly string _clientSecret;
+        private readonly string _adminUsername;
+        private readonly string _adminPassword;
+        private readonly string _adminRealm;
+        private readonly string _adminClientId;
+        private readonly int _maxUsersPerRequest;
+        private readonly string _keycloakDbConnectionString;
 
         public KeycloakService(SqlConnection db, ILogger<KeycloakService> logger)
         {
             _db = db;
             _logger = logger;
 
+            // Load Keycloak configuration
+            _keycloakUrl = configuration["Keycloak:Url"] ?? string.Empty;
+            _realm = configuration["Keycloak:Realm"] ?? string.Empty;
+            _clientId = configuration["Keycloak:ClientId"] ?? string.Empty;
+            _clientSecret = configuration["Keycloak:ClientSecret"] ?? string.Empty;
+            _adminUsername = configuration["Keycloak:AdminUsername"] ?? string.Empty;
+            _adminPassword = configuration["Keycloak:AdminPassword"] ?? string.Empty;
+            _adminRealm = configuration["Keycloak:AdminRealm"] ?? "master";
+            _adminClientId = configuration["Keycloak:AdminClientId"] ?? "admin-cli";
+            _maxUsersPerRequest = int.TryParse(configuration["Keycloak:MaxUsersPerRequest"], out var max) ? max : 1000;
+            _keycloakDbConnectionString = configuration["KeycloakDb:ConnectionString"] ?? string.Empty;
         }
 
         /// <summary>
@@ -147,14 +162,14 @@ namespace api.Services.KeyCloakServices
             //var tokenEndpoint = $"{_keycloakUrl}/realms/master/protocol/openid-connect/token";
             var parameters = new Dictionary<string, string>
             {
-                { "client_id", "admin-cli" },
+                { "client_id", _adminClientId },
                 { "grant_type", "password" },
                 { "username", _adminUsername },
                 { "password", _adminPassword }
             };
 
             string apiUrl = _keycloakUrl;
-            string apiRoute = $"realms/master/protocol/openid-connect/token";
+            string apiRoute = $"realms/{_adminRealm}/protocol/openid-connect/token";
             using var _httpClient = new HttpClient
             {
                 BaseAddress = new Uri(configuration.GetConnectionString(apiUrl) ?? apiUrl)
@@ -242,7 +257,7 @@ namespace api.Services.KeyCloakServices
             if (token == null) return null;
 
             string apiUrl = _keycloakUrl;
-            string apiRoute = $"/admin/realms/{_realm}/users?briefRepresentation=false&max=1000&_={DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
+            string apiRoute = $"/admin/realms/{_realm}/users?briefRepresentation=false&max={_maxUsersPerRequest}&_={DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
 
             using var _httpClient = new HttpClient
             {
@@ -309,11 +324,9 @@ namespace api.Services.KeyCloakServices
         public async Task<bool> UsernameExistsInDatabase(string username)
         {
 
-            string _connectionString = "Server=172.17.10.77,1433;Database=keycloak_db;User Id=sa;Password=@Abc12345;TrustServerCertificate=True;";
-
             try
             {
-                using var connection = new SqlConnection(_connectionString);
+                using var connection = new SqlConnection(_keycloakDbConnectionString);
                 await connection.OpenAsync();
 
                 string query = "SELECT COUNT(*) FROM users WHERE username = @Username";
@@ -596,10 +609,9 @@ namespace api.Services.KeyCloakServices
         /// <returns></returns>
         public async Task<bool> ValidateUserInfo(ResetPasswordRequest request)
         {
-            string _connectionString = "Server=172.17.10.77,1433;Database=keycloak_db;User Id=sa;Password=@Abc12345;TrustServerCertificate=True;";
             try
             {
-                using var connection = new SqlConnection(_connectionString);
+                using var connection = new SqlConnection(_keycloakDbConnectionString);
                 await connection.OpenAsync();
 
                 string query = @"
@@ -663,13 +675,13 @@ namespace api.Services.KeyCloakServices
                 }
 
                 // 🔹 Lấy userId từ Keycloak dựa vào username
-                string keycloakApiUrl = $"http://192.168.93.198:8080/admin/realms/TestSSO/users?username={username}";
+                string keycloakApiUrl = $"{_keycloakUrl}/admin/realms/{_realm}/users?username={username}";
                 var request = new HttpRequestMessage(HttpMethod.Get, keycloakApiUrl);
                 request.Headers.Add("Authorization", $"Bearer {adminToken}");
 
 
                 string apiUrl = _keycloakUrl;
-                string apiRoute = $"/admin/realms/TestSSO/users?username={username}";
+                string apiRoute = $"/admin/realms/{_realm}/users?username={username}";
 
                 using var _httpClient = new HttpClient
                 {
@@ -696,7 +708,7 @@ namespace api.Services.KeyCloakServices
                 _logger.LogInformation($"Updating password for Keycloak user ID: {userId}");
 
                 // 🔹 Cập nhật mật khẩu mới
-                string passwordUpdateUrl = $"http://192.168.93.198:8080/admin/realms/TestSSO/users/{userId}/reset-password";
+                string passwordUpdateUrl = $"{_keycloakUrl}/admin/realms/{_realm}/users/{userId}/reset-password";
                 var passwordUpdatePayload = new
                 {
                     type = "password",

@@ -10,15 +10,23 @@
 @inject IHttpClientFactory HttpClientFactory
 @inject ProtectedLocalStorage Storage
 @inject AuthenticationStateProvider AuthStateProvider
+@inject IConfiguration Configuration
 
 <h3>Đang đăng nhập...</h3>
 
 @code {
-    private const string KeycloakBase = "http://172.17.10.77:8080";
-    private const string Realm = "TestSSO";
-    private const string ClientId = "TestSSO3";
-    private const string ClientSecret = "XA6nxHPzbYkBQqpC98RvB93NXU1rEAjR";
-    private const string RedirectUri = "http://localhost:5106/callback";
+    private string KeycloakBase => Configuration["Keycloak:Url"] ?? "";
+    private string Realm => Configuration["Keycloak:Realm"] ?? "";
+    private string ClientId => Configuration["Keycloak:ClientId"] ?? "";
+    private string ClientSecret => Configuration["Keycloak:ClientSecret"] ?? "";
+    private string RedirectUri
+    {
+        get
+        {
+            var baseUri = Configuration["Keycloak:PostLogoutRedirectUri"] ?? "http://localhost:5106/";
+            return baseUri.TrimEnd('/') + "/callback";
+        }
+    }
 
     private bool _loaded;
 
@@ -70,7 +78,11 @@
                 return;
             }
 
-            await Storage.SetAsync("token", accessToken);
+            try
+            {
+                await Storage.SetAsync("token", accessToken);
+            }
+            catch (System.Security.Cryptography.CryptographicException) { /* key mismatch - ignore */ }
 
             if (AuthStateProvider is CustomAuthenticationStateProvider customAuthProvider)
             {

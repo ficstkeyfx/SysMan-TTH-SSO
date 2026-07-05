@@ -34,11 +34,11 @@ IConfigurationRoot configuration = new ConfigurationBuilder()
                             .Build();
 builder.Services.AddHttpClient("GenericApi", client =>
 {
-    client.Timeout = TimeSpan.FromSeconds(30);
+    client.Timeout = TimeSpan.FromSeconds(configuration.GetValue<int>("HttpClient:TimeoutSeconds", 30));
     client.DefaultRequestHeaders.Accept.Add(
         new MediaTypeWithQualityHeaderValue("application/json"));
 })
-.SetHandlerLifetime(TimeSpan.FromMinutes(5)); // refresh DNS định kỳ
+.SetHandlerLifetime(TimeSpan.FromMinutes(configuration.GetValue<int>("HttpClient:HandlerLifetimeMinutes", 5))); // refresh DNS định kỳ
 
 
 // Add services to the container.
@@ -97,7 +97,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowCollabora", policy =>
     {
-        policy.WithOrigins("http://203.128.246.222:9980") 
+        policy.WithOrigins(configuration["Collabora:AllowedOrigin"] ?? "http://203.128.246.222:9980")
               .AllowAnyMethod()
               .AllowAnyHeader();
     });
@@ -114,14 +114,14 @@ var app = builder.Build();
 
 app.Use(async (context, next) =>
 {
-    context.Features.Get<IHttpMaxRequestBodySizeFeature>()!.MaxRequestBodySize = 1000 * 1024 * 1024; 
+    context.Features.Get<IHttpMaxRequestBodySizeFeature>()!.MaxRequestBodySize = configuration.GetValue<long?>("MaxRequestBodySizeBytes") ?? (1000L * 1024 * 1024);
     await next.Invoke();
 });
 
 app.Use(async (context, next) =>
 {
-    context.Response.Headers.Append("Content-Security-Policy", 
-        "frame-ancestors 'self' http://SysMan.6pg.org http://203.128.246.222:9980;");
+    context.Response.Headers.Append("Content-Security-Policy",
+        configuration["Collabora:CspFrameAncestors"] ?? "frame-ancestors 'self' http://SysMan.6pg.org http://203.128.246.222:9980;");
     await next();
 });
 

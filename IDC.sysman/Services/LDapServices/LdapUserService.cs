@@ -1,4 +1,4 @@
-﻿using IDC.Shared.Models;
+using IDC.Shared.Models;
 using IDC.Shared.Models.SysMan;
 using SysMan.Models;
 using System.DirectoryServices;
@@ -9,12 +9,20 @@ namespace SysMan.Services.LDapServices
 {
     public class LdapUserService
     {
-        private readonly string _domain = "C500.edu.vn";
-        private readonly string _ouDistinguishedName = "OU=c500,DC=c500,DC=edu,DC=vn"; // Thay đổi theo tổ chức của bạn
-        
-        // Tên người dùng và tài khoản đăng nhập vào LDAP
-        private readonly string _adminUsername = "nghiand";
-        private readonly string _adminPassword = "@Abc123";
+        private readonly string _domain;
+        private readonly string _ouDistinguishedName;
+        private readonly string _adminUsername;
+        private readonly string _adminPassword;
+        private readonly string _defaultPassword;
+
+        public LdapUserService(IConfiguration configuration)
+        {
+            _domain = configuration["Ldap:Domain"] ?? string.Empty;
+            _ouDistinguishedName = configuration["Ldap:OuDistinguishedName"] ?? string.Empty;
+            _adminUsername = configuration["Ldap:AdminUsername"] ?? string.Empty;
+            _adminPassword = configuration["Ldap:AdminPassword"] ?? string.Empty;
+            _defaultPassword = configuration["Ldap:DefaultPassword"] ?? string.Empty;
+        }
 
         /// <summary>
         /// Hàm thảo một tài khoản người dùng trên LDAP
@@ -24,8 +32,8 @@ namespace SysMan.Services.LDapServices
         /// <param name="displayName">Tên hiển thị</param>
         /// <param name="email">Địa chỉ thư điện tử</param>
         /// <exception cref="Exception"></exception>
-        public bool CreateUser(string username, string password, 
-            string displayName, string email)// ví dụ: "OU=CNTT,DC=c500,DC=edu,DC=vn"
+        public bool CreateUser(string username, string password,
+            string displayName, string email)
         {
             using (var context = new PrincipalContext(ContextType.Domain, _domain, _ouDistinguishedName, _adminUsername, _adminPassword))
             {
@@ -40,16 +48,12 @@ namespace SysMan.Services.LDapServices
                     user.UserPrincipalName = $"{username}@{_domain}";
                     user.DisplayName = displayName;
                     user.EmailAddress = email;
-                    //user.ExpirePasswordNow(); // Bắt buộc đổi mật khẩu khi đăng nhập nếu cần
 
                     try
                     {
                         user.Save();
-                        // 2) ĐẶT MẬT KHẨU (yêu cầu đã Save ở bước 1)
                         user.SetPassword(password);
-                        // 3) BẬT TÀI KHOẢN
                         user.Enabled = true;
-                        // 5) Lưu lần cuối
                         user.Save();
                         return true;
                     }
@@ -66,7 +70,7 @@ namespace SysMan.Services.LDapServices
         {
             List<vNguoiDungHeThong> lstUser = new List<vNguoiDungHeThong>();
             vNguoiDungHeThong usr;
-            using (var Context = new PrincipalContext(System.DirectoryServices.AccountManagement.ContextType.Domain, "C500.edu.vn", "nghiand", "@Abc123"))
+            using (var Context = new PrincipalContext(System.DirectoryServices.AccountManagement.ContextType.Domain, _domain, _adminUsername, _adminPassword))
             {
                 using (var searcher = new PrincipalSearcher(new UserPrincipal(Context)))
                 {
@@ -77,10 +81,6 @@ namespace SysMan.Services.LDapServices
                         {
                             usr = new vNguoiDungHeThong();
                             usr.UserName = de.Properties["sAMAccountName"].Value.ToString();
-
-                            // if (de.Properties["userPrincipalName"].Value!=null)
-                            //     usr.FullName = de.Properties["userPrincipalName"].Value.ToString();//email
-
                             usr.FullName = de.Properties["cn"].Value.ToString();
                             lstUser.Add(usr);
                         }
@@ -92,10 +92,8 @@ namespace SysMan.Services.LDapServices
 
         public bool CheckExistUser(string username)
         {
-            // Tạo context kết nối đến domain
-            using (var context = new PrincipalContext(ContextType.Domain, "C500.edu.vn", "nghiand", "@Abc123"))
+            using (var context = new PrincipalContext(ContextType.Domain, _domain, _adminUsername, _adminPassword))
             {
-                // Tìm user theo sAMAccountName (hoặc UPN, hoặc email)
                 string usernameToCheck = username;
 
                 using (var user = UserPrincipal.FindByIdentity(context, usernameToCheck))
@@ -119,10 +117,8 @@ namespace SysMan.Services.LDapServices
         /// <returns>true: xóa được; flase: không khóa được</returns>
         public bool DeleteUser(string username)
         {
-            // Tạo context kết nối đến domain
-            using (var context = new PrincipalContext(ContextType.Domain, "C500.edu.vn", "C500.edu.vn", "nghiand", "@Abc123"))
+            using (var context = new PrincipalContext(ContextType.Domain, _domain, _domain, _adminUsername, _adminPassword))
             {
-                // Tìm user theo sAMAccountName (hoặc UPN, hoặc email)
                 string usernameToCheck = username;
 
                 using (var user = UserPrincipal.FindByIdentity(context, usernameToCheck))
@@ -140,21 +136,17 @@ namespace SysMan.Services.LDapServices
             }
         }
 
-
-
         public bool ResetUserPassword(string username)
         {
-            // Tạo context kết nối đến domain
-            using (var context = new PrincipalContext(ContextType.Domain, "C500.edu.vn", "C500.edu.vn", "nghiand", "@Abc123"))
+            using (var context = new PrincipalContext(ContextType.Domain, _domain, _domain, _adminUsername, _adminPassword))
             {
-                // Tìm user theo sAMAccountName (hoặc UPN, hoặc email)
                 string usernameToCheck = username;
-                string newPassword = "@Abc123"; // Mật khẩu mới
+                string newPassword = _defaultPassword;
                 using (var user = UserPrincipal.FindByIdentity(context, usernameToCheck))
                 {
                     if (user != null)
                     {
-                        user.SetPassword(newPassword);   // Reset mật khẩu
+                        user.SetPassword(newPassword);
                         user.Save();
                         return true;
                     }
@@ -168,12 +160,10 @@ namespace SysMan.Services.LDapServices
 
         public bool ChangeUserPassword(string username, string password)
         {
-            // Tạo context kết nối đến domain
-            using (var context = new PrincipalContext(ContextType.Domain, "C500.edu.vn", "C500.edu.vn", "nghiand", "@Abc123"))
+            using (var context = new PrincipalContext(ContextType.Domain, _domain, _domain, _adminUsername, _adminPassword))
             {
-                // Tìm user theo sAMAccountName (hoặc UPN, hoặc email)
                 string usernameToCheck = username;
-                string newPassword = "@Abc123"; // Mật khẩu mới
+                string newPassword = _defaultPassword;
                 using (var user = UserPrincipal.FindByIdentity(context, usernameToCheck))
                 {
                     if (user != null)

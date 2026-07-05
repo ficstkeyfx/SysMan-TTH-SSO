@@ -2,9 +2,15 @@ window.logoutAndRedirect = function (idToken) {
     localStorage.clear();
     sessionStorage.clear();
 
-    var url = "http://192.168.93.198:8080/realms/TestSSO/protocol/openid-connect/logout" +
-        "?client_id=TestSSO" +
-        "&post_logout_redirect_uri=" + encodeURIComponent("http://localhost:5105/") +
+    var cfg = (window.appConfig && window.appConfig.keycloak) || {};
+    var keycloakUrl = cfg.url || "";
+    var realm = cfg.realm || "";
+    var clientId = cfg.clientId || "";
+    var postLogoutRedirectUri = cfg.postLogoutRedirectUri || (window.location.origin + "/");
+
+    var url = keycloakUrl + "/realms/" + realm + "/protocol/openid-connect/logout" +
+        "?client_id=" + encodeURIComponent(clientId) +
+        "&post_logout_redirect_uri=" + encodeURIComponent(postLogoutRedirectUri) +
         (idToken ? "&id_token_hint=" + encodeURIComponent(idToken) : "");
 
     window.location.href = url;
